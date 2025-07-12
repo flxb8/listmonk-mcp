@@ -5,11 +5,13 @@ import logging
 from typing import Dict, Any, List, Optional
 from contextlib import asynccontextmanager
 
-from mcp import FastMCP
+from mcp.server import FastMCP
 from mcp.types import TextContent, Tool, Resource
 
 from .config import Config, load_config, validate_config
 from .client import ListmonkClient, ListmonkAPIError, create_client
+from .exceptions import safe_execute_async
+from .models import CreateCampaignModel, UpdateCampaignModel
 
 
 # Global state
@@ -233,7 +235,7 @@ async def change_subscriber_status(subscriber_id: int, status: str) -> Dict[str,
 
 
 # Subscriber Resources
-@mcp.resource("subscriber/{subscriber_id}")
+@mcp.resource("listmonk://subscriber/{subscriber_id}")
 async def get_subscriber_by_id(subscriber_id: str) -> str:
     """Get subscriber details by ID."""
     try:
@@ -262,7 +264,7 @@ async def get_subscriber_by_id(subscriber_id: str) -> str:
         return f"Error retrieving subscriber {subscriber_id}: {str(e)}"
 
 
-@mcp.resource("subscriber/email/{email}")
+@mcp.resource("listmonk://subscriber/email/{email}")
 async def get_subscriber_by_email(email: str) -> str:
     """Get subscriber details by email address."""
     try:
@@ -291,7 +293,7 @@ async def get_subscriber_by_email(email: str) -> str:
         return f"Error retrieving subscriber {email}: {str(e)}"
 
 
-@mcp.resource("subscribers")
+@mcp.resource("listmonk://subscribers")
 async def list_subscribers() -> str:
     """List all subscribers with basic information."""
     try:
@@ -363,6 +365,717 @@ async def create_mailing_list(
             "error": str(e),
             "status_code": e.status_code
         }
+
+
+@mcp.tool()
+async def update_mailing_list(
+    list_id: int,
+    name: Optional[str] = None,
+    type: Optional[str] = None,
+    optin: Optional[str] = None,
+    tags: Optional[List[str]] = None,
+    description: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Update an existing mailing list.
+    
+    Args:
+        list_id: ID of the list to update
+        name: New list name
+        type: New list type (public, private)
+        optin: New opt-in type (single, double)
+        tags: New list tags
+        description: New list description
+    """
+    try:
+        client = get_client()
+        result = await client.update_list(
+            list_id=list_id,
+            name=name,
+            type=type,
+            optin=optin,
+            tags=tags,
+            description=description
+        )
+        
+        return {
+            "success": True,
+            "list": result.get("data"),
+            "message": f"Mailing list {list_id} updated successfully"
+        }
+    except ListmonkAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "status_code": e.status_code
+        }
+
+
+@mcp.tool()
+async def delete_mailing_list(list_id: int) -> Dict[str, Any]:
+    """
+    Delete a mailing list.
+    
+    Args:
+        list_id: ID of the list to delete
+    """
+    try:
+        client = get_client()
+        await client.delete_list(list_id)
+        
+        return {
+            "success": True,
+            "message": f"Mailing list {list_id} deleted successfully"
+        }
+    except ListmonkAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "status_code": e.status_code
+        }
+
+
+@mcp.tool()
+async def get_list_subscribers_tool(
+    list_id: int,
+    page: int = 1,
+    per_page: int = 20
+) -> Dict[str, Any]:
+    """
+    Get subscribers for a specific mailing list.
+    
+    Args:
+        list_id: ID of the mailing list
+        page: Page number for pagination
+        per_page: Number of subscribers per page
+    """
+    try:
+        client = get_client()
+        result = await client.get_list_subscribers(
+            list_id=list_id,
+            page=page,
+            per_page=per_page
+        )
+        
+        return {
+            "success": True,
+            "subscribers": result.get("data"),
+            "message": f"Retrieved subscribers for list {list_id}"
+        }
+    except ListmonkAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "status_code": e.status_code
+        }
+
+
+# Campaign Management Tools
+@mcp.tool()
+async def create_campaign(
+    name: str,
+    subject: str,
+    lists: List[int],
+    type: str = "regular",
+    content_type: str = "richtext",
+    body: Optional[str] = None,
+    template_id: Optional[int] = None,
+    tags: Optional[List[str]] = None
+) -> Dict[str, Any]:
+    """
+    Create a new email campaign.
+    
+    Args:
+        name: Campaign name
+        subject: Email subject line
+        lists: List of mailing list IDs to send to
+        type: Campaign type (regular, optin)
+        content_type: Content type (richtext, html, markdown, plain)
+        body: Campaign content body
+        template_id: Template ID to use (optional)
+        tags: Campaign tags
+    """
+    try:
+        client = get_client()
+        result = await client.create_campaign(
+            name=name,
+            subject=subject,
+            lists=lists,
+            type=type,
+            content_type=content_type,
+            body=body,
+            template_id=template_id,
+            tags=tags or []
+        )
+        
+        return {
+            "success": True,
+            "campaign": result.get("data"),
+            "message": f"Campaign '{name}' created successfully"
+        }
+    except ListmonkAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "status_code": e.status_code
+        }
+
+
+@mcp.tool()
+async def update_campaign(
+    campaign_id: int,
+    name: Optional[str] = None,
+    subject: Optional[str] = None,
+    lists: Optional[List[int]] = None,
+    body: Optional[str] = None,
+    tags: Optional[List[str]] = None
+) -> Dict[str, Any]:
+    """
+    Update an existing campaign.
+    
+    Args:
+        campaign_id: ID of the campaign to update
+        name: New campaign name
+        subject: New email subject
+        lists: New list of mailing list IDs
+        body: New campaign content
+        tags: New campaign tags
+    """
+    try:
+        client = get_client()
+        result = await client.update_campaign(
+            campaign_id=campaign_id,
+            name=name,
+            subject=subject,
+            lists=lists,
+            body=body,
+            tags=tags
+        )
+        
+        return {
+            "success": True,
+            "campaign": result.get("data"),
+            "message": f"Campaign {campaign_id} updated successfully"
+        }
+    except ListmonkAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "status_code": e.status_code
+        }
+
+
+@mcp.tool()
+async def send_campaign(campaign_id: int) -> Dict[str, Any]:
+    """
+    Send a campaign immediately.
+    
+    Args:
+        campaign_id: ID of the campaign to send
+    """
+    try:
+        client = get_client()
+        result = await client.send_campaign(campaign_id)
+        
+        return {
+            "success": True,
+            "campaign": result.get("data"),
+            "message": f"Campaign {campaign_id} sent successfully"
+        }
+    except ListmonkAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "status_code": e.status_code
+        }
+
+
+@mcp.tool()
+async def schedule_campaign(campaign_id: int, send_at: str) -> Dict[str, Any]:
+    """
+    Schedule a campaign for future delivery.
+    
+    Args:
+        campaign_id: ID of the campaign to schedule
+        send_at: ISO datetime string for when to send (e.g., '2024-12-25T10:00:00Z')
+    """
+    try:
+        client = get_client()
+        result = await client.schedule_campaign(campaign_id, send_at)
+        
+        return {
+            "success": True,
+            "campaign": result.get("data"),
+            "message": f"Campaign {campaign_id} scheduled for {send_at}"
+        }
+    except ListmonkAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "status_code": e.status_code
+        }
+
+
+# Campaign Resources
+@mcp.resource("listmonk://campaigns")
+async def list_campaigns() -> str:
+    """List all campaigns with basic information."""
+    try:
+        client = get_client()
+        result = await client.get_campaigns(per_page=50)
+        
+        data = result.get("data", {})
+        campaigns = data.get("results", [])
+        total = data.get("total", 0)
+        
+        campaign_list = []
+        for camp in campaigns:
+            lists_str = ", ".join(lst.get('name', '') for lst in camp.get('lists', []))
+            status = camp.get('status', 'unknown')
+            sent = camp.get('sent', 0)
+            to_send = camp.get('to_send', 0)
+            
+            campaign_list.append(
+                f"- **{camp.get('name')}** - Status: {status} - Sent: {sent}/{to_send} - Lists: {lists_str}"
+            )
+        
+        return f"""# Campaigns List
+
+**Total Campaigns:** {total}
+**Showing:** {len(campaigns)} campaigns
+
+{chr(10).join(campaign_list)}
+
+*Use the get_campaign_by_id resource for detailed information.*
+"""
+    
+    except ListmonkAPIError as e:
+        return f"Error retrieving campaigns: {str(e)}"
+
+
+@mcp.resource("listmonk://campaign/{campaign_id}")
+async def get_campaign_by_id(campaign_id: str) -> str:
+    """Get campaign details by ID."""
+    try:
+        client = get_client()
+        result = await client.get_campaign(int(campaign_id))
+        
+        campaign = result.get("data", {})
+        
+        # Format lists
+        lists_info = []
+        for lst in campaign.get('lists', []):
+            lists_info.append(f"- {lst.get('name')} (ID: {lst.get('id')})")
+        
+        # Format tags
+        tags = campaign.get('tags', [])
+        tags_str = ", ".join(tags) if tags else "None"
+        
+        return f"""# Campaign Details
+
+**ID:** {campaign.get('id')}
+**Name:** {campaign.get('name')}
+**Subject:** {campaign.get('subject')}
+**Status:** {campaign.get('status')}
+**Type:** {campaign.get('type', 'regular')}
+**Content Type:** {campaign.get('content_type', 'richtext')}
+
+## Statistics
+**To Send:** {campaign.get('to_send', 0)}
+**Sent:** {campaign.get('sent', 0)}
+**Views:** {campaign.get('views', 0)}
+**Clicks:** {campaign.get('clicks', 0)}
+
+## Timing
+**Created:** {campaign.get('created_at')}
+**Updated:** {campaign.get('updated_at')}
+**Started:** {campaign.get('started_at', 'Not started')}
+
+## Lists
+{chr(10).join(lists_info) if lists_info else "No lists assigned"}
+
+## Tags
+{tags_str}
+
+## Template
+**Template ID:** {campaign.get('template_id', 'None')}
+"""
+    
+    except ListmonkAPIError as e:
+        return f"Error retrieving campaign {campaign_id}: {str(e)}"
+
+
+@mcp.resource("listmonk://campaign/{campaign_id}/preview")
+async def get_campaign_preview(campaign_id: str) -> str:
+    """Get campaign HTML preview."""
+    try:
+        client = get_client()
+        result = await client.get_campaign_preview(int(campaign_id))
+        
+        preview_data = result.get("data", {})
+        preview_html = preview_data.get("preview", "No preview available")
+        
+        return f"""# Campaign Preview
+
+**Campaign ID:** {campaign_id}
+
+## HTML Preview
+```html
+{preview_html}
+```
+
+*This is the rendered HTML content that will be sent to subscribers.*
+"""
+    
+    except ListmonkAPIError as e:
+        return f"Error retrieving campaign preview {campaign_id}: {str(e)}"
+
+
+# List Resources
+@mcp.resource("listmonk://lists")
+async def list_mailing_lists() -> str:
+    """List all mailing lists with basic information."""
+    try:
+        client = get_client()
+        result = await client.get_lists()
+        
+        data = result.get("data", {})
+        lists = data.get("results", []) if isinstance(data, dict) else data
+        
+        list_items = []
+        for lst in lists:
+            subscriber_count = lst.get('subscriber_count', 0)
+            status = lst.get('status', 'active')
+            tags = lst.get('tags', [])
+            tags_str = ", ".join(tags) if tags else "None"
+            
+            list_items.append(
+                f"- **{lst.get('name')}** (ID: {lst.get('id')}) - Type: {lst.get('type')} - Subscribers: {subscriber_count} - Tags: {tags_str}"
+            )
+        
+        return f"""# Mailing Lists
+
+**Total Lists:** {len(lists)}
+
+{chr(10).join(list_items)}
+
+*Use the get_list_by_id resource for detailed information.*
+"""
+    
+    except ListmonkAPIError as e:
+        return f"Error retrieving mailing lists: {str(e)}"
+
+
+@mcp.resource("listmonk://list/{list_id}")
+async def get_list_by_id(list_id: str) -> str:
+    """Get mailing list details by ID."""
+    try:
+        client = get_client()
+        result = await client.get_list(int(list_id))
+        
+        list_data = result.get("data", {})
+        
+        # Format tags
+        tags = list_data.get('tags', [])
+        tags_str = ", ".join(tags) if tags else "None"
+        
+        return f"""# Mailing List Details
+
+**ID:** {list_data.get('id')}
+**Name:** {list_data.get('name')}
+**Type:** {list_data.get('type', 'public')}
+**Opt-in:** {list_data.get('optin', 'single')}
+**Status:** {list_data.get('status', 'active')}
+
+## Statistics
+**Subscriber Count:** {list_data.get('subscriber_count', 0)}
+
+## Details
+**Created:** {list_data.get('created_at')}
+**Updated:** {list_data.get('updated_at')}
+
+## Tags
+{tags_str}
+
+## Description
+{list_data.get('description', 'No description provided')}
+
+*Use get_list_subscribers_tool to see subscribers for this list.*
+"""
+    
+    except ListmonkAPIError as e:
+        return f"Error retrieving list {list_id}: {str(e)}"
+
+
+@mcp.resource("listmonk://list/{list_id}/subscribers")
+async def get_list_subscribers_resource(list_id: str) -> str:
+    """Get subscribers for a specific mailing list."""
+    try:
+        client = get_client()
+        result = await client.get_list_subscribers(int(list_id), per_page=50)
+        
+        data = result.get("data", {})
+        subscribers = data.get("results", [])
+        total = data.get("total", 0)
+        
+        subscriber_list = []
+        for sub in subscribers:
+            status = sub.get('status', 'unknown')
+            created = sub.get('created_at', 'Unknown')
+            
+            subscriber_list.append(
+                f"- **{sub.get('name')}** ({sub.get('email')}) - Status: {status} - Joined: {created}"
+            )
+        
+        return f"""# List Subscribers
+
+**List ID:** {list_id}
+**Total Subscribers:** {total}
+**Showing:** {len(subscribers)} subscribers
+
+{chr(10).join(subscriber_list) if subscriber_list else "No subscribers in this list"}
+
+*Use the get_subscriber_by_id or get_subscriber_by_email resources for detailed subscriber information.*
+"""
+    
+    except ListmonkAPIError as e:
+        return f"Error retrieving subscribers for list {list_id}: {str(e)}"
+
+
+# Template Management Tools
+@mcp.tool()
+async def create_template(
+    name: str,
+    body: str,
+    type: str = "campaign",
+    is_default: bool = False
+) -> Dict[str, Any]:
+    """
+    Create a new email template.
+    
+    Args:
+        name: Template name
+        body: Template HTML body content
+        type: Template type (campaign, tx)
+        is_default: Whether this is the default template
+    """
+    try:
+        client = get_client()
+        result = await client.create_template(
+            name=name,
+            body=body,
+            type=type,
+            is_default=is_default
+        )
+        
+        return {
+            "success": True,
+            "template": result.get("data"),
+            "message": f"Template '{name}' created successfully"
+        }
+    except ListmonkAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "status_code": e.status_code
+        }
+
+
+@mcp.tool()
+async def update_template(
+    template_id: int,
+    name: Optional[str] = None,
+    body: Optional[str] = None,
+    is_default: Optional[bool] = None
+) -> Dict[str, Any]:
+    """
+    Update an existing email template.
+    
+    Args:
+        template_id: ID of the template to update
+        name: New template name
+        body: New template HTML body content
+        is_default: Whether this is the default template
+    """
+    try:
+        client = get_client()
+        result = await client.update_template(
+            template_id=template_id,
+            name=name,
+            body=body,
+            is_default=is_default
+        )
+        
+        return {
+            "success": True,
+            "template": result.get("data"),
+            "message": f"Template {template_id} updated successfully"
+        }
+    except ListmonkAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "status_code": e.status_code
+        }
+
+
+@mcp.tool()
+async def delete_template(template_id: int) -> Dict[str, Any]:
+    """
+    Delete an email template.
+    
+    Args:
+        template_id: ID of the template to delete
+    """
+    try:
+        client = get_client()
+        await client.delete_template(template_id)
+        
+        return {
+            "success": True,
+            "message": f"Template {template_id} deleted successfully"
+        }
+    except ListmonkAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "status_code": e.status_code
+        }
+
+
+@mcp.tool()
+async def send_transactional_email(
+    template_id: int,
+    subscriber_email: str,
+    data: Optional[Dict[str, Any]] = None,
+    content_type: str = "html"
+) -> Dict[str, Any]:
+    """
+    Send a transactional email using a template.
+    
+    Args:
+        template_id: ID of the template to use
+        subscriber_email: Recipient email address
+        data: Template variables/data
+        content_type: Content type (html, plain)
+    """
+    try:
+        client = get_client()
+        result = await client.send_transactional_email(
+            template_id=template_id,
+            subscriber_email=subscriber_email,
+            data=data or {},
+            content_type=content_type
+        )
+        
+        return {
+            "success": True,
+            "result": result.get("data"),
+            "message": f"Transactional email sent to {subscriber_email}"
+        }
+    except ListmonkAPIError as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "status_code": e.status_code
+        }
+
+
+# Template Resources
+@mcp.resource("listmonk://templates")
+async def list_templates() -> str:
+    """List all email templates."""
+    try:
+        client = get_client()
+        result = await client.get_templates()
+        
+        data = result.get("data", {})
+        templates = data.get("results", []) if isinstance(data, dict) else data
+        
+        template_list = []
+        for template in templates:
+            template_type = template.get('type', 'campaign')
+            is_default = template.get('is_default', False)
+            default_marker = " (DEFAULT)" if is_default else ""
+            
+            template_list.append(
+                f"- **{template.get('name')}** (ID: {template.get('id')}) - Type: {template_type}{default_marker}"
+            )
+        
+        return f"""# Email Templates
+
+**Total Templates:** {len(templates)}
+
+{chr(10).join(template_list)}
+
+*Use the get_template_by_id resource for detailed template information.*
+"""
+    
+    except ListmonkAPIError as e:
+        return f"Error retrieving templates: {str(e)}"
+
+
+@mcp.resource("listmonk://template/{template_id}")
+async def get_template_by_id(template_id: str) -> str:
+    """Get template details by ID."""
+    try:
+        client = get_client()
+        result = await client.get_template(int(template_id))
+        
+        template = result.get("data", {})
+        
+        # Format the body content preview (truncate if too long)
+        body = template.get('body', '')
+        body_preview = body[:500] + "..." if len(body) > 500 else body
+        
+        return f"""# Template Details
+
+**ID:** {template.get('id')}
+**Name:** {template.get('name')}
+**Type:** {template.get('type', 'campaign')}
+**Default:** {"Yes" if template.get('is_default') else "No"}
+
+## Timing
+**Created:** {template.get('created_at')}
+**Updated:** {template.get('updated_at')}
+
+## Template Body Preview
+```html
+{body_preview}
+```
+
+*Note: Body content may be truncated for display. Use the template in campaigns or transactional emails to see full content.*
+"""
+    
+    except ListmonkAPIError as e:
+        return f"Error retrieving template {template_id}: {str(e)}"
+
+
+@mcp.resource("listmonk://template/{template_id}/preview")
+async def get_template_preview(template_id: str) -> str:
+    """Get full template body content."""
+    try:
+        client = get_client()
+        result = await client.get_template(int(template_id))
+        
+        template = result.get("data", {})
+        body = template.get('body', 'No content available')
+        
+        return f"""# Template Full Content
+
+**Template ID:** {template_id}
+**Template Name:** {template.get('name')}
+
+## Full HTML Body
+```html
+{body}
+```
+
+*This is the complete template HTML that can be used for campaigns and transactional emails.*
+"""
+    
+    except ListmonkAPIError as e:
+        return f"Error retrieving template content {template_id}: {str(e)}"
 
 
 # Main server entry point
