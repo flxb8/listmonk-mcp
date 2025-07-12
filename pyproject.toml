@@ -16,7 +16,7 @@ requires-python = ">=3.11"
 dependencies = [
     "mcp>=1.2.0",
     "httpx>=0.24.0",
-    "pydantic>=2.0.0",
+    "pydantic[email]>=2.0.0",
     "pydantic-settings>=2.0.0",
     "typer>=0.9.0",
     "rich>=13.0.0",
@@ -35,9 +35,6 @@ dev = [
 
 [project.scripts]
 listmonk-mcp = "listmonk_mcp.server:main"
-
-[project.entry-points.console_scripts]
-listmonk-mcp-server = "listmonk_mcp.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/listmonk_mcp"]
