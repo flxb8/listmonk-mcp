@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan():
+async def lifespan(app):
     """Server lifespan context manager."""
     global _client, _config
     
@@ -1079,10 +1079,10 @@ async def get_template_preview(template_id: str) -> str:
 
 
 # Main server entry point
-async def main():
-    """Main server entry point."""
+def main():
+    """Main entry point for the CLI script."""
     try:
-        await mcp.run()
+        mcp.run()
     except KeyboardInterrupt:
         logger.info("Server shutdown requested")
     except Exception as e:
@@ -1091,4 +1091,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

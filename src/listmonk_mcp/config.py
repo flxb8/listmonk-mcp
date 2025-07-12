@@ -12,8 +12,8 @@ class ListmonkConfig(BaseModel):
     """Listmonk server configuration."""
     
     url: str = Field(..., description="Listmonk server URL")
-    username: str = Field(..., description="Admin username")
-    password: str = Field(..., description="Admin password")
+    username: str = Field(..., description="API username")
+    password: str = Field(..., description="API token")
     timeout: int = Field(default=30, description="Request timeout in seconds")
     max_retries: int = Field(default=3, description="Maximum retry attempts")
     
@@ -65,8 +65,8 @@ class Config(BaseSettings):
     
     # Listmonk configuration
     url: str = Field(..., description="Listmonk server URL")
-    username: str = Field(..., description="Admin username") 
-    password: str = Field(..., description="Admin password")
+    username: str = Field(..., description="API username") 
+    password: str = Field(..., description="API token")
     timeout: int = Field(default=30, description="Request timeout in seconds")
     max_retries: int = Field(default=3, description="Maximum retry attempts")
     
@@ -167,9 +167,9 @@ def validate_config() -> None:
     if not config.url:
         raise ValueError("Listmonk URL is required (set LISTMONK_MCP_URL)")
     if not config.username:
-        raise ValueError("Listmonk username is required (set LISTMONK_MCP_USERNAME)")
+        raise ValueError("Listmonk API username is required (set LISTMONK_MCP_USERNAME)")
     if not config.password:
-        raise ValueError("Listmonk password is required (set LISTMONK_MCP_PASSWORD)")
+        raise ValueError("Listmonk API token is required (set LISTMONK_MCP_PASSWORD)")
 
 
 def create_test_config() -> Config:

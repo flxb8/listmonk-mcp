@@ -38,16 +38,17 @@ class ListmonkClient:
     
     async def connect(self) -> None:
         """Initialize the HTTP client with authentication."""
-        auth = httpx.BasicAuth(self.config.username, self.config.password)
+        # Use API token authentication format: "username:token"
+        auth_token = f"{self.config.username}:{self.config.password}"
         
         self._client = AsyncClient(
-            auth=auth,
             timeout=httpx.Timeout(self.config.timeout),
             limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
             headers={
                 "User-Agent": "Listmonk-MCP-Server/0.1.0",
                 "Accept": "application/json",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "Authorization": f"token {auth_token}"
             }
         )
         
