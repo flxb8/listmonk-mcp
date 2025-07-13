@@ -91,7 +91,12 @@ export LISTMONK_MCP_USERNAME=your-api-username
 export LISTMONK_MCP_PASSWORD=your-generated-api-token
 ```
 
-**Note**: The password field should contain the API token, not the user's password.
+**Important**: The password field should contain the API token (not the user's login password). The server uses Listmonk's token authentication format: `Authorization: token username:api_token`.
+
+**Troubleshooting Configuration**:
+- **Verify variables**: `echo $LISTMONK_MCP_URL` should show your Listmonk URL
+- **Test API access**: `curl -H "Authorization: token username:api_token" http://localhost:9000/api/health`
+- **Common errors**: "invalid session" or 403 errors indicate incorrect credentials
 
 ### 4. Run the MCP Server
 
@@ -103,40 +108,7 @@ uv run python -m listmonk_mcp.server
 listmonk-mcp
 ```
 
-## Authentication
-
-The MCP server uses Listmonk's API token authentication system:
-
-- **Username**: Your API user's username (created in Admin → Users)
-- **Password**: The generated API token (not the user's login password)
-- **Format**: `Authorization: token username:api_token`
-
-## Troubleshooting
-
-### Authentication Issues
-
-If you encounter "invalid API credentials" errors:
-
-1. **Verify API User Setup**:
-   - Ensure you've created an API user in Admin → Users
-   - Verify the user has appropriate permissions/role
-   - Generate a fresh API token if needed
-
-2. **Check Environment Variables**:
-   ```bash
-   echo $LISTMONK_MCP_URL        # Should be http://localhost:9000
-   echo $LISTMONK_MCP_USERNAME   # Should be your API username
-   echo $LISTMONK_MCP_PASSWORD   # Should be your API token (not user password)
-   ```
-
-3. **Test API Access Manually**:
-   ```bash
-   curl -H "Authorization: token username:api_token" http://localhost:9000/api/health
-   ```
-
-### Common Issues
-
-- **"invalid session" or 403 errors**: Usually indicates missing or incorrect API credentials
+**Common Issues**:
 - **Connection refused**: Listmonk server not running or wrong URL
 - **Module not found**: Install dependencies with `uv install` or `pip install -e .`
 

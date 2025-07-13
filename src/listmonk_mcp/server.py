@@ -71,28 +71,16 @@ def get_config() -> Config:
 
 # Health Check Tool
 @mcp.tool()
-async def check_listmonk_health() -> Dict[str, Any]:
+async def check_listmonk_health() -> str:
     """Check if Listmonk server is healthy and accessible."""
-    try:
+    async def _check_health_logic():
         client = get_client()
         health_data = await client.health_check()
+        config = get_config()
         
-        return {
-            "status": "healthy",
-            "listmonk_health": health_data,
-            "server_url": get_config().url
-        }
-    except ListmonkAPIError as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e),
-            "status_code": e.status_code
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": str(e)
-        }
+        return f"Listmonk server is healthy at {config.url}. Health data: {health_data}"
+    
+    return await safe_execute_async(_check_health_logic)
 
 
 # Subscriber Management Tools
@@ -104,7 +92,7 @@ async def add_subscriber(
     status: str = "enabled",
     attributes: Optional[Dict[str, Any]] = None,
     preconfirm: bool = False
-) -> Dict[str, Any]:
+) -> str:
     """
     Add a new subscriber to Listmonk.
     
@@ -116,7 +104,7 @@ async def add_subscriber(
         attributes: Custom subscriber attributes
         preconfirm: Whether to preconfirm subscriptions
     """
-    try:
+    async def _add_subscriber_logic():
         client = get_client()
         result = await client.create_subscriber(
             email=email,
@@ -127,17 +115,11 @@ async def add_subscriber(
             preconfirm_subscriptions=preconfirm
         )
         
-        return {
-            "success": True,
-            "subscriber": result.get("data"),
-            "message": f"Subscriber {email} added successfully"
-        }
-    except ListmonkAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "status_code": e.status_code
-        }
+        subscriber_data = result.get("data", {})
+        subscriber_id = subscriber_data.get("id", "unknown")
+        return f"Successfully added subscriber: {email} (ID: {subscriber_id})"
+    
+    return await safe_execute_async(_add_subscriber_logic)
 
 
 @mcp.tool()
@@ -148,7 +130,7 @@ async def update_subscriber(
     status: Optional[str] = None,
     lists: Optional[List[int]] = None,
     attributes: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+) -> str:
     """
     Update an existing subscriber.
     
@@ -160,7 +142,7 @@ async def update_subscriber(
         lists: New list of mailing list IDs
         attributes: New custom attributes
     """
-    try:
+    async def _update_subscriber_logic():
         client = get_client()
         result = await client.update_subscriber(
             subscriber_id=subscriber_id,
@@ -171,45 +153,30 @@ async def update_subscriber(
             attribs=attributes
         )
         
-        return {
-            "success": True,
-            "subscriber": result.get("data"),
-            "message": f"Subscriber {subscriber_id} updated successfully"
-        }
-    except ListmonkAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "status_code": e.status_code
-        }
+        return f"Successfully updated subscriber {subscriber_id}"
+    
+    return await safe_execute_async(_update_subscriber_logic)
 
 
 @mcp.tool()
-async def remove_subscriber(subscriber_id: int) -> Dict[str, Any]:
+async def remove_subscriber(subscriber_id: int) -> str:
     """
     Remove a subscriber from Listmonk.
     
     Args:
         subscriber_id: ID of the subscriber to remove
     """
-    try:
+    async def _remove_subscriber_logic():
         client = get_client()
         await client.delete_subscriber(subscriber_id)
         
-        return {
-            "success": True,
-            "message": f"Subscriber {subscriber_id} removed successfully"
-        }
-    except ListmonkAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "status_code": e.status_code
-        }
+        return f"Successfully removed subscriber {subscriber_id}"
+    
+    return await safe_execute_async(_remove_subscriber_logic)
 
 
 @mcp.tool()
-async def change_subscriber_status(subscriber_id: int, status: str) -> Dict[str, Any]:
+async def change_subscriber_status(subscriber_id: int, status: str) -> str:
     """
     Change subscriber status.
     
@@ -217,21 +184,13 @@ async def change_subscriber_status(subscriber_id: int, status: str) -> Dict[str,
         subscriber_id: ID of the subscriber
         status: New status (enabled, disabled, blocklisted)
     """
-    try:
+    async def _change_status_logic():
         client = get_client()
         result = await client.set_subscriber_status(subscriber_id, status)
         
-        return {
-            "success": True,
-            "subscriber": result.get("data"),
-            "message": f"Subscriber {subscriber_id} status changed to {status}"
-        }
-    except ListmonkAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "status_code": e.status_code
-        }
+        return f"Successfully changed subscriber {subscriber_id} status to {status}"
+    
+    return await safe_execute_async(_change_status_logic)
 
 
 # Subscriber Resources
@@ -244,6 +203,9 @@ async def get_subscriber_by_id(subscriber_id: str) -> str:
         
         subscriber = result.get("data", {})
         
+        lists_items = "\n".join(f"- {lst.get('name')} (ID: {lst.get('id')})" for lst in subscriber.get('lists', []))
+        attributes_items = "\n".join(f"- **{k}:** {v}" for k, v in subscriber.get('attribs', {}).items())
+        
         return f"""# Subscriber Details
 
 **ID:** {subscriber.get('id')}
@@ -254,10 +216,10 @@ async def get_subscriber_by_id(subscriber_id: str) -> str:
 **Updated:** {subscriber.get('updated_at')}
 
 ## Lists
-{chr(10).join(f"- {lst.get('name')} (ID: {lst.get('id')})" for lst in subscriber.get('lists', []))}
+{lists_items}
 
 ## Attributes
-{chr(10).join(f"- **{k}:** {v}" for k, v in subscriber.get('attribs', {}).items())}
+{attributes_items}
 """
     
     except ListmonkAPIError as e:
@@ -273,6 +235,9 @@ async def get_subscriber_by_email(email: str) -> str:
         
         subscriber = result.get("data", {})
         
+        lists_items = "\n".join(f"- {lst.get('name')} (ID: {lst.get('id')})" for lst in subscriber.get('lists', []))
+        attributes_items = "\n".join(f"- **{k}:** {v}" for k, v in subscriber.get('attribs', {}).items())
+        
         return f"""# Subscriber Details
 
 **ID:** {subscriber.get('id')}
@@ -283,10 +248,10 @@ async def get_subscriber_by_email(email: str) -> str:
 **Updated:** {subscriber.get('updated_at')}
 
 ## Lists
-{chr(10).join(f"- {lst.get('name')} (ID: {lst.get('id')})" for lst in subscriber.get('lists', []))}
+{lists_items}
 
 ## Attributes
-{chr(10).join(f"- **{k}:** {v}" for k, v in subscriber.get('attribs', {}).items())}
+{attributes_items}
 """
     
     except ListmonkAPIError as e:
@@ -311,12 +276,14 @@ async def list_subscribers() -> str:
                 f"- **{sub.get('name')}** ({sub.get('email')}) - Status: {sub.get('status')} - Lists: {lists_str}"
             )
         
+        subscriber_items = "\n".join(subscriber_list)
+        
         return f"""# Subscribers List
 
 **Total Subscribers:** {total}
 **Showing:** {len(subscribers)} subscribers
 
-{chr(10).join(subscriber_list)}
+{subscriber_items}
 
 *Use the get_subscriber_by_id or get_subscriber_by_email resources for detailed information.*
 """
@@ -333,7 +300,7 @@ async def create_mailing_list(
     optin: str = "single",
     tags: Optional[List[str]] = None,
     description: Optional[str] = None
-) -> Dict[str, Any]:
+) -> str:
     """
     Create a new mailing list.
     
@@ -344,7 +311,7 @@ async def create_mailing_list(
         tags: List tags
         description: List description
     """
-    try:
+    async def _create_list_logic():
         client = get_client()
         result = await client.create_list(
             name=name,
@@ -354,17 +321,11 @@ async def create_mailing_list(
             description=description
         )
         
-        return {
-            "success": True,
-            "list": result.get("data"),
-            "message": f"Mailing list '{name}' created successfully"
-        }
-    except ListmonkAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "status_code": e.status_code
-        }
+        list_data = result.get("data", {})
+        list_id = list_data.get("id", "unknown")
+        return f"Successfully created mailing list '{name}' (ID: {list_id})"
+    
+    return await safe_execute_async(_create_list_logic)
 
 
 @mcp.tool()
@@ -375,7 +336,7 @@ async def update_mailing_list(
     optin: Optional[str] = None,
     tags: Optional[List[str]] = None,
     description: Optional[str] = None
-) -> Dict[str, Any]:
+) -> str:
     """
     Update an existing mailing list.
     
@@ -387,7 +348,7 @@ async def update_mailing_list(
         tags: New list tags
         description: New list description
     """
-    try:
+    async def _update_list_logic():
         client = get_client()
         result = await client.update_list(
             list_id=list_id,
@@ -398,41 +359,26 @@ async def update_mailing_list(
             description=description
         )
         
-        return {
-            "success": True,
-            "list": result.get("data"),
-            "message": f"Mailing list {list_id} updated successfully"
-        }
-    except ListmonkAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "status_code": e.status_code
-        }
+        return f"Successfully updated mailing list {list_id}"
+    
+    return await safe_execute_async(_update_list_logic)
 
 
 @mcp.tool()
-async def delete_mailing_list(list_id: int) -> Dict[str, Any]:
+async def delete_mailing_list(list_id: int) -> str:
     """
     Delete a mailing list.
     
     Args:
         list_id: ID of the list to delete
     """
-    try:
+    async def _delete_list_logic():
         client = get_client()
         await client.delete_list(list_id)
         
-        return {
-            "success": True,
-            "message": f"Mailing list {list_id} deleted successfully"
-        }
-    except ListmonkAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "status_code": e.status_code
-        }
+        return f"Successfully deleted mailing list {list_id}"
+    
+    return await safe_execute_async(_delete_list_logic)
 
 
 @mcp.tool()
@@ -440,7 +386,7 @@ async def get_list_subscribers_tool(
     list_id: int,
     page: int = 1,
     per_page: int = 20
-) -> Dict[str, Any]:
+) -> str:
     """
     Get subscribers for a specific mailing list.
     
@@ -449,7 +395,7 @@ async def get_list_subscribers_tool(
         page: Page number for pagination
         per_page: Number of subscribers per page
     """
-    try:
+    async def _get_list_subscribers_logic():
         client = get_client()
         result = await client.get_list_subscribers(
             list_id=list_id,
@@ -457,17 +403,11 @@ async def get_list_subscribers_tool(
             per_page=per_page
         )
         
-        return {
-            "success": True,
-            "subscribers": result.get("data"),
-            "message": f"Retrieved subscribers for list {list_id}"
-        }
-    except ListmonkAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "status_code": e.status_code
-        }
+        subscribers = result.get("data", [])
+        total = result.get("total", 0)
+        return f"Successfully retrieved {len(subscribers)} subscribers for list {list_id} (Total: {total}, Page: {page})"
+    
+    return await safe_execute_async(_get_list_subscribers_logic)
 
 
 # Campaign Management Tools
@@ -481,7 +421,7 @@ async def create_campaign(
     body: Optional[str] = None,
     template_id: Optional[int] = None,
     tags: Optional[List[str]] = None
-) -> Dict[str, Any]:
+) -> str:
     """
     Create a new email campaign.
     
@@ -495,7 +435,7 @@ async def create_campaign(
         template_id: Template ID to use (optional)
         tags: Campaign tags
     """
-    try:
+    async def _create_campaign_logic():
         client = get_client()
         result = await client.create_campaign(
             name=name,
@@ -508,17 +448,11 @@ async def create_campaign(
             tags=tags or []
         )
         
-        return {
-            "success": True,
-            "campaign": result.get("data"),
-            "message": f"Campaign '{name}' created successfully"
-        }
-    except ListmonkAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "status_code": e.status_code
-        }
+        campaign_data = result.get("data", {})
+        campaign_id = campaign_data.get("id", "unknown")
+        return f"Successfully created campaign '{name}' (ID: {campaign_id})"
+    
+    return await safe_execute_async(_create_campaign_logic)
 
 
 @mcp.tool()
@@ -529,7 +463,7 @@ async def update_campaign(
     lists: Optional[List[int]] = None,
     body: Optional[str] = None,
     tags: Optional[List[str]] = None
-) -> Dict[str, Any]:
+) -> str:
     """
     Update an existing campaign.
     
@@ -541,7 +475,7 @@ async def update_campaign(
         body: New campaign content
         tags: New campaign tags
     """
-    try:
+    async def _update_campaign_logic():
         client = get_client()
         result = await client.update_campaign(
             campaign_id=campaign_id,
@@ -552,46 +486,30 @@ async def update_campaign(
             tags=tags
         )
         
-        return {
-            "success": True,
-            "campaign": result.get("data"),
-            "message": f"Campaign {campaign_id} updated successfully"
-        }
-    except ListmonkAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "status_code": e.status_code
-        }
+        return f"Successfully updated campaign {campaign_id}"
+    
+    return await safe_execute_async(_update_campaign_logic)
 
 
 @mcp.tool()
-async def send_campaign(campaign_id: int) -> Dict[str, Any]:
+async def send_campaign(campaign_id: int) -> str:
     """
     Send a campaign immediately.
     
     Args:
         campaign_id: ID of the campaign to send
     """
-    try:
+    async def _send_campaign_logic():
         client = get_client()
         result = await client.send_campaign(campaign_id)
         
-        return {
-            "success": True,
-            "campaign": result.get("data"),
-            "message": f"Campaign {campaign_id} sent successfully"
-        }
-    except ListmonkAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "status_code": e.status_code
-        }
+        return f"Successfully sent campaign {campaign_id}"
+    
+    return await safe_execute_async(_send_campaign_logic)
 
 
 @mcp.tool()
-async def schedule_campaign(campaign_id: int, send_at: str) -> Dict[str, Any]:
+async def schedule_campaign(campaign_id: int, send_at: str) -> str:
     """
     Schedule a campaign for future delivery.
     
@@ -599,21 +517,13 @@ async def schedule_campaign(campaign_id: int, send_at: str) -> Dict[str, Any]:
         campaign_id: ID of the campaign to schedule
         send_at: ISO datetime string for when to send (e.g., '2024-12-25T10:00:00Z')
     """
-    try:
+    async def _schedule_campaign_logic():
         client = get_client()
         result = await client.schedule_campaign(campaign_id, send_at)
         
-        return {
-            "success": True,
-            "campaign": result.get("data"),
-            "message": f"Campaign {campaign_id} scheduled for {send_at}"
-        }
-    except ListmonkAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "status_code": e.status_code
-        }
+        return f"Successfully scheduled campaign {campaign_id} for {send_at}"
+    
+    return await safe_execute_async(_schedule_campaign_logic)
 
 
 # Campaign Resources
@@ -639,12 +549,14 @@ async def list_campaigns() -> str:
                 f"- **{camp.get('name')}** - Status: {status} - Sent: {sent}/{to_send} - Lists: {lists_str}"
             )
         
+        campaign_items = "\n".join(campaign_list)
+        
         return f"""# Campaigns List
 
 **Total Campaigns:** {total}
 **Showing:** {len(campaigns)} campaigns
 
-{chr(10).join(campaign_list)}
+{campaign_items}
 
 *Use the get_campaign_by_id resource for detailed information.*
 """
@@ -671,6 +583,8 @@ async def get_campaign_by_id(campaign_id: str) -> str:
         tags = campaign.get('tags', [])
         tags_str = ", ".join(tags) if tags else "None"
         
+        lists_items = "\n".join(lists_info) if lists_info else "No lists assigned"
+        
         return f"""# Campaign Details
 
 **ID:** {campaign.get('id')}
@@ -692,7 +606,7 @@ async def get_campaign_by_id(campaign_id: str) -> str:
 **Started:** {campaign.get('started_at', 'Not started')}
 
 ## Lists
-{chr(10).join(lists_info) if lists_info else "No lists assigned"}
+{lists_items}
 
 ## Tags
 {tags_str}
@@ -753,11 +667,13 @@ async def list_mailing_lists() -> str:
                 f"- **{lst.get('name')}** (ID: {lst.get('id')}) - Type: {lst.get('type')} - Subscribers: {subscriber_count} - Tags: {tags_str}"
             )
         
+        list_items_text = "\n".join(list_items)
+        
         return f"""# Mailing Lists
 
 **Total Lists:** {len(lists)}
 
-{chr(10).join(list_items)}
+{list_items_text}
 
 *Use the get_list_by_id resource for detailed information.*
 """
@@ -827,13 +743,15 @@ async def get_list_subscribers_resource(list_id: str) -> str:
                 f"- **{sub.get('name')}** ({sub.get('email')}) - Status: {status} - Joined: {created}"
             )
         
+        subscriber_items = "\n".join(subscriber_list) if subscriber_list else "No subscribers in this list"
+        
         return f"""# List Subscribers
 
 **List ID:** {list_id}
 **Total Subscribers:** {total}
 **Showing:** {len(subscribers)} subscribers
 
-{chr(10).join(subscriber_list) if subscriber_list else "No subscribers in this list"}
+{subscriber_items}
 
 *Use the get_subscriber_by_id or get_subscriber_by_email resources for detailed subscriber information.*
 """
@@ -849,7 +767,7 @@ async def create_template(
     body: str,
     type: str = "campaign",
     is_default: bool = False
-) -> Dict[str, Any]:
+) -> str:
     """
     Create a new email template.
     
@@ -859,7 +777,7 @@ async def create_template(
         type: Template type (campaign, tx)
         is_default: Whether this is the default template
     """
-    try:
+    async def _create_template_logic():
         client = get_client()
         result = await client.create_template(
             name=name,
@@ -868,17 +786,11 @@ async def create_template(
             is_default=is_default
         )
         
-        return {
-            "success": True,
-            "template": result.get("data"),
-            "message": f"Template '{name}' created successfully"
-        }
-    except ListmonkAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "status_code": e.status_code
-        }
+        template_data = result.get("data", {})
+        template_id = template_data.get("id", "unknown")
+        return f"Successfully created template '{name}' (ID: {template_id})"
+    
+    return await safe_execute_async(_create_template_logic)
 
 
 @mcp.tool()
@@ -887,7 +799,7 @@ async def update_template(
     name: Optional[str] = None,
     body: Optional[str] = None,
     is_default: Optional[bool] = None
-) -> Dict[str, Any]:
+) -> str:
     """
     Update an existing email template.
     
@@ -897,7 +809,7 @@ async def update_template(
         body: New template HTML body content
         is_default: Whether this is the default template
     """
-    try:
+    async def _update_template_logic():
         client = get_client()
         result = await client.update_template(
             template_id=template_id,
@@ -906,41 +818,26 @@ async def update_template(
             is_default=is_default
         )
         
-        return {
-            "success": True,
-            "template": result.get("data"),
-            "message": f"Template {template_id} updated successfully"
-        }
-    except ListmonkAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "status_code": e.status_code
-        }
+        return f"Successfully updated template {template_id}"
+    
+    return await safe_execute_async(_update_template_logic)
 
 
 @mcp.tool()
-async def delete_template(template_id: int) -> Dict[str, Any]:
+async def delete_template(template_id: int) -> str:
     """
     Delete an email template.
     
     Args:
         template_id: ID of the template to delete
     """
-    try:
+    async def _delete_template_logic():
         client = get_client()
         await client.delete_template(template_id)
         
-        return {
-            "success": True,
-            "message": f"Template {template_id} deleted successfully"
-        }
-    except ListmonkAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "status_code": e.status_code
-        }
+        return f"Successfully deleted template {template_id}"
+    
+    return await safe_execute_async(_delete_template_logic)
 
 
 @mcp.tool()
@@ -949,7 +846,7 @@ async def send_transactional_email(
     subscriber_email: str,
     data: Optional[Dict[str, Any]] = None,
     content_type: str = "html"
-) -> Dict[str, Any]:
+) -> str:
     """
     Send a transactional email using a template.
     
@@ -959,7 +856,7 @@ async def send_transactional_email(
         data: Template variables/data
         content_type: Content type (html, plain)
     """
-    try:
+    async def _send_transactional_logic():
         client = get_client()
         result = await client.send_transactional_email(
             template_id=template_id,
@@ -968,17 +865,9 @@ async def send_transactional_email(
             content_type=content_type
         )
         
-        return {
-            "success": True,
-            "result": result.get("data"),
-            "message": f"Transactional email sent to {subscriber_email}"
-        }
-    except ListmonkAPIError as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "status_code": e.status_code
-        }
+        return f"Successfully sent transactional email to {subscriber_email}"
+    
+    return await safe_execute_async(_send_transactional_logic)
 
 
 # Template Resources
@@ -1002,11 +891,13 @@ async def list_templates() -> str:
                 f"- **{template.get('name')}** (ID: {template.get('id')}) - Type: {template_type}{default_marker}"
             )
         
+        template_items = "\n".join(template_list)
+        
         return f"""# Email Templates
 
 **Total Templates:** {len(templates)}
 
-{chr(10).join(template_list)}
+{template_items}
 
 *Use the get_template_by_id resource for detailed template information.*
 """

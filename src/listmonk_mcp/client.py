@@ -7,7 +7,7 @@ from urllib.parse import urljoin
 import httpx
 from httpx import AsyncClient, Response
 
-from .config import Config, ListmonkConfig
+from .config import Config
 
 
 class ListmonkAPIError(Exception):
@@ -22,7 +22,7 @@ class ListmonkAPIError(Exception):
 class ListmonkClient:
     """Async HTTP client for Listmonk API operations."""
     
-    def __init__(self, config: ListmonkConfig):
+    def __init__(self, config: Config):
         self.config = config
         self.base_url = config.url.rstrip('/')
         self._client: Optional[AsyncClient] = None

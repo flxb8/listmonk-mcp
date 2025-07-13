@@ -401,54 +401,5 @@ class HealthCheckResponse(BaseModel):
     build: Optional[str] = Field(None, description="Build information")
 
 
-# Utility functions for model validation
-
-def validate_email_list(emails: List[str]) -> List[EmailStr]:
-    """Validate a list of email addresses."""
-    validated_emails = []
-    for email in emails:
-        try:
-            # Use Pydantic's EmailStr validation
-            validated_email = EmailStr._validate(email, None)
-            validated_emails.append(validated_email)
-        except Exception as e:
-            raise ValueError(f"Invalid email address '{email}': {str(e)}")
-    return validated_emails
 
 
-def validate_positive_int_list(values: List[int], field_name: str = "value") -> List[int]:
-    """Validate a list of positive integers."""
-    if not all(isinstance(val, int) and val > 0 for val in values):
-        raise ValueError(f"All {field_name} must be positive integers")
-    return values
-
-
-def sanitize_html_content(content: str) -> str:
-    """Basic HTML content sanitization (placeholder for more robust sanitization)."""
-    # This is a placeholder - in production you might want to use bleach or similar
-    # For now, just strip potential script tags
-    import re
-    content = re.sub(r'<script[^>]*>.*?</script>', '', content, flags=re.DOTALL | re.IGNORECASE)
-    return content.strip()
-
-
-# Model factory functions for creating instances from API responses
-
-def create_subscriber_from_api(data: Dict[str, Any]) -> Subscriber:
-    """Create a Subscriber model from API response data."""
-    return Subscriber(**data)
-
-
-def create_campaign_from_api(data: Dict[str, Any]) -> Campaign:
-    """Create a Campaign model from API response data."""
-    return Campaign(**data)
-
-
-def create_list_from_api(data: Dict[str, Any]) -> MailingList:
-    """Create a MailingList model from API response data."""
-    return MailingList(**data)
-
-
-def create_template_from_api(data: Dict[str, Any]) -> Template:
-    """Create a Template model from API response data."""
-    return Template(**data)

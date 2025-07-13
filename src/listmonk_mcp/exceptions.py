@@ -342,18 +342,16 @@ def safe_execute(func, *args, **kwargs) -> Dict[str, Any]:
         return format_mcp_error(mcp_error)
 
 
-async def safe_execute_async(func, *args, **kwargs) -> Dict[str, Any]:
+async def safe_execute_async(func, *args, **kwargs):
     """
-    Safely execute an async function and return formatted response.
-    
-    This is a utility function that can be used to wrap async MCP tool functions
-    to ensure consistent error handling and response formatting.
+    Safely execute an async function and handle ListmonkAPIError exceptions.
+    Returns formatted error response for MCP tools.
     """
     try:
         result = await func(*args, **kwargs)
-        return {"success": True, "data": result}
-    except ListmonkMCPError as e:
-        return format_mcp_error(e)
+        return result
+    except ListmonkAPIError as e:
+        error_details = convert_listmonk_api_error(e).to_dict()
+        return f"Error: {error_details['error_type']} - {error_details['message']}"
     except Exception as e:
-        mcp_error = convert_listmonk_api_error(e)
-        return format_mcp_error(mcp_error)
+        return f"Unexpected error: {str(e)}"
