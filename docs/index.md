@@ -12,12 +12,32 @@ An MCP (Model Context Protocol) server for Listmonk, providing programmatic acce
 - Transactional email sending with template data
 - Type-safe operations with Pydantic models
 
+## Installation
+
+### Using uvx (Recommended)
+
+Install and run directly from PyPI:
+
+```bash
+# Run directly (installs if needed)
+uvx listmonk-mcp --help
+
+# Or install globally
+uvx install listmonk-mcp
+listmonk-mcp --help
+```
+
+### Using pip
+
+```bash
+pip install listmonk-mcp
+```
+
 ## Quick Start
 
-1. **Install the server:**
+1. **Install the server using uvx:**
    ```bash
-   git clone https://github.com/rhnvrm/listmonk-mcp.git
-   cd listmonk-mcp
+   uvx install listmonk-mcp
    ```
 
 2. **Create API credentials in Listmonk:**

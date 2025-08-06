@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write  # Required for trusted publishing
-      contents: read
+      contents: write  # Required for creating releases
     
     steps:
     - name: Checkout code
@@ -42,3 +42,9 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       # Uses PyPI's trusted publishing - no API token needed
       # Just configure trusted publishing on PyPI for your repository
+      
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        generate_release_notes: true
+        make_latest: true

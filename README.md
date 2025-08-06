@@ -33,19 +33,88 @@ This server will bridge the MCP protocol with Listmonk's REST API, providing a s
 
 ## Installation
 
-### Using uv (Recommended)
+### Using uvx (Recommended)
+
+Install and run directly from PyPI without managing dependencies:
 
 ```bash
-git clone https://github.com/rhnvrm/listmonk-mcp.git
-cd listmonk-mcp
+# Run directly (installs if needed)
+uvx listmonk-mcp --help
+
+# Or install globally
+uvx install listmonk-mcp
+listmonk-mcp --help
 ```
 
 ### Using pip
 
 ```bash
+pip install listmonk-mcp
+```
+
+### Development Installation
+
+```bash
 git clone https://github.com/rhnvrm/listmonk-mcp.git
 cd listmonk-mcp
-pip install -e .
+uv sync --extra dev
+```
+
+## Development
+
+### Code Quality Checks
+
+Run the same checks that are executed in the CI/CD pipeline:
+
+```bash
+# Install development dependencies
+uv sync --extra dev
+
+# Run linting (same as CI)
+uv run ruff check src/
+
+# Auto-fix linting issues
+uv run ruff check src/ --fix
+
+# Run type checking (same as CI)
+uv run mypy src/
+
+# Run all checks together
+uv run ruff check src/ && uv run mypy src/
+```
+
+### Building and Testing
+
+```bash
+# Build the package (same as CI)
+uv build
+
+# Test CLI locally (using entry point)
+uv run listmonk-mcp --help
+uv run listmonk-mcp --version
+
+# Or install locally and test
+uv pip install -e .
+listmonk-mcp --help
+```
+
+### Version Management
+
+To release a new version:
+
+```bash
+# 1. Update version in pyproject.toml (e.g., 0.0.1 -> 0.0.2)
+# 2. Commit and tag
+git add pyproject.toml
+git commit -m "chore: bump version to 0.0.2"
+git tag v0.0.2
+git push origin master
+git push origin v0.0.2
+
+# GitHub Actions will automatically:
+# - Run linting and type checking
+# - Build and publish to PyPI  
+# - Create GitHub release with auto-generated notes
 ```
 
 ## Quick Start

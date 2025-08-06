@@ -10,9 +10,8 @@ Add to your Windsurf MCP settings:
 {
   "mcpServers": {
     "listmonk": {
-      "command": "uv",
-      "args": ["run", "python", "-m", "listmonk_mcp.server"],
-      "cwd": "/path/to/listmonk-mcp",
+      "command": "uvx",
+      "args": ["listmonk-mcp"],
       "env": {
         "LISTMONK_MCP_URL": "http://localhost:9000",
         "LISTMONK_MCP_USERNAME": "your-api-username",
@@ -31,9 +30,8 @@ Add to your Cursor MCP settings:
 {
   "mcpServers": {
     "listmonk": {
-      "command": "uv",
-      "args": ["run", "python", "-m", "listmonk_mcp.server"],
-      "cwd": "/path/to/listmonk-mcp",
+      "command": "uvx",
+      "args": ["listmonk-mcp"],
       "env": {
         "LISTMONK_MCP_URL": "http://localhost:9000",
         "LISTMONK_MCP_USERNAME": "your-api-username",
@@ -52,6 +50,13 @@ Add to your Cursor MCP settings:
 
 ## Prerequisites
 
-1. Install the project: `git clone https://github.com/rhnvrm/listmonk-mcp.git`
-2. Create API user and token in Listmonk admin interface
-3. Restart your IDE after adding configuration
+1. **Install uvx** (if not already installed):
+   ```bash
+   pip install uv
+   ```
+
+2. **Create API user and token** in Listmonk admin interface:
+   - Go to Admin → Users in your Listmonk instance
+   - Create a new API user and token
+
+3. **Restart your IDE** after adding configuration
