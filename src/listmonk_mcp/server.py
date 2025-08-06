@@ -4,6 +4,7 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Any
 
+import typer
 from mcp.server import FastMCP
 
 from .client import ListmonkAPIError, ListmonkClient, create_client
@@ -47,8 +48,22 @@ async def lifespan(app):
             logger.info("Listmonk client disconnected")
 
 
-# Create FastMCP server with lifespan
-mcp = FastMCP("Listmonk MCP Server", lifespan=lifespan)
+# Create a basic MCP server just for decorator registration (no lifespan)
+mcp = FastMCP("Listmonk MCP Server")
+
+
+def create_production_server() -> FastMCP:
+    """Create the production MCP server with lifespan management."""
+    # Create a new server with the same tools but with lifespan
+    production_server = FastMCP("Listmonk MCP Server", lifespan=lifespan)
+    
+    # Copy all registered tools from the decorator server to production server
+    # Access the tool manager to copy tools properly
+    if hasattr(mcp, '_tool_manager') and hasattr(mcp._tool_manager, '_tools'):
+        for tool_name, tool_func in mcp._tool_manager._tools.items():
+            production_server._tool_manager._tools[tool_name] = tool_func
+    
+    return production_server
 
 
 def get_client() -> ListmonkClient:
@@ -965,16 +980,79 @@ async def get_template_preview(template_id: str) -> str:
         return f"Error retrieving template content {template_id}: {str(e)}"
 
 
-# Main server entry point
-def main():
-    """Main entry point for the CLI script."""
+# CLI application
+cli_app = typer.Typer(
+    name="listmonk-mcp",
+    help="Listmonk MCP Server - Connect Claude Code to Listmonk via Model Context Protocol",
+    add_completion=False
+)
+
+
+@cli_app.command()
+def run(
+    config_file: str = typer.Option(
+        None, 
+        "--config", 
+        "-c", 
+        help="Path to configuration file (.env format)"
+    ),
+    debug: bool = typer.Option(
+        False, 
+        "--debug", 
+        "-d", 
+        help="Enable debug logging"
+    ),
+    version: bool = typer.Option(
+        False, 
+        "--version", 
+        "-v", 
+        help="Show version and exit"
+    )
+):
+    """
+    Start the Listmonk MCP server.
+    
+    The server requires configuration via environment variables:
+    - LISTMONK_MCP_URL: Listmonk server URL (e.g., http://localhost:9000)  
+    - LISTMONK_MCP_USERNAME: Listmonk API username
+    - LISTMONK_MCP_PASSWORD: Listmonk API password/token
+    
+    Optional environment variables:
+    - LISTMONK_MCP_TIMEOUT: Request timeout in seconds (default: 30)
+    - LISTMONK_MCP_MAX_RETRIES: Maximum retry attempts (default: 3)
+    - LISTMONK_MCP_DEBUG: Enable debug mode (default: false)
+    - LISTMONK_MCP_LOG_LEVEL: Logging level (default: INFO)
+    """
+    if version:
+        # Import here to avoid circular imports
+        try:
+            from importlib.metadata import version as get_version
+            pkg_version = get_version("listmonk-mcp")
+        except ImportError:
+            pkg_version = "0.0.1"  # fallback
+        typer.echo(f"listmonk-mcp {pkg_version}")
+        raise typer.Exit()
+    
+    if debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+        logger.debug("Debug logging enabled")
+    
     try:
-        mcp.run()
+        logger.info("Starting Listmonk MCP Server...")
+        # Create the production MCP server with lifespan management
+        server = create_production_server()
+        server.run()
     except KeyboardInterrupt:
         logger.info("Server shutdown requested")
+        raise typer.Exit(0)
     except Exception as e:
         logger.error(f"Server error: {e}")
-        raise
+        raise typer.Exit(1)
+
+
+def main():
+    """Main entry point for the CLI script."""
+    cli_app()
 
 
 if __name__ == "__main__":

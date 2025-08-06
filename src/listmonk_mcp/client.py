@@ -423,7 +423,6 @@ class ListmonkClient:
 
 async def create_client(config: Config) -> ListmonkClient:
     """Create and connect a Listmonk client."""
-    listmonk_config = config.get_listmonk_config()
-    client = ListmonkClient(listmonk_config)
+    client = ListmonkClient(config)
     await client.connect()
     return client
