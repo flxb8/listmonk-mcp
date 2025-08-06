@@ -4,6 +4,9 @@ from typing import Any
 
 import httpx
 
+# Import ListmonkAPIError from client module
+from .client import ListmonkAPIError
+
 
 class ListmonkMCPError(Exception):
     """Base exception class for all Listmonk MCP errors."""
@@ -327,7 +330,7 @@ def format_mcp_error(error: ListmonkMCPError) -> dict[str, Any]:
 def safe_execute(func, *args, **kwargs) -> dict[str, Any]:
     """
     Safely execute a function and return formatted response.
-    
+
     This is a utility function that can be used to wrap MCP tool functions
     to ensure consistent error handling and response formatting.
     """

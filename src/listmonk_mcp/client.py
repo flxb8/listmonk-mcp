@@ -98,7 +98,7 @@ class ListmonkClient:
                 await asyncio.sleep(2 ** retry_count)  # Exponential backoff
                 return await self._request(method, endpoint, params, json_data, retry_count + 1)
 
-            raise ListmonkAPIError(f"Request failed: {str(e)}")
+            raise ListmonkAPIError(f"Request failed: {str(e)}") from e
 
     async def _handle_response(self, response: Response) -> dict[str, Any]:
         """Handle HTTP response and extract data."""

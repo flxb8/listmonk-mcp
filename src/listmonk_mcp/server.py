@@ -91,7 +91,7 @@ async def add_subscriber(
 ) -> str:
     """
     Add a new subscriber to Listmonk.
-    
+
     Args:
         email: Subscriber email address
         name: Subscriber name
@@ -129,7 +129,7 @@ async def update_subscriber(
 ) -> str:
     """
     Update an existing subscriber.
-    
+
     Args:
         subscriber_id: ID of the subscriber to update
         email: New email address
@@ -140,7 +140,7 @@ async def update_subscriber(
     """
     async def _update_subscriber_logic():
         client = get_client()
-        result = await client.update_subscriber(
+        await client.update_subscriber(
             subscriber_id=subscriber_id,
             email=email,
             name=name,
@@ -158,7 +158,7 @@ async def update_subscriber(
 async def remove_subscriber(subscriber_id: int) -> str:
     """
     Remove a subscriber from Listmonk.
-    
+
     Args:
         subscriber_id: ID of the subscriber to remove
     """
@@ -175,14 +175,14 @@ async def remove_subscriber(subscriber_id: int) -> str:
 async def change_subscriber_status(subscriber_id: int, status: str) -> str:
     """
     Change subscriber status.
-    
+
     Args:
         subscriber_id: ID of the subscriber
         status: New status (enabled, disabled, blocklisted)
     """
     async def _change_status_logic():
         client = get_client()
-        result = await client.set_subscriber_status(subscriber_id, status)
+        await client.set_subscriber_status(subscriber_id, status)
 
         return f"Successfully changed subscriber {subscriber_id} status to {status}"
 
@@ -299,7 +299,7 @@ async def create_mailing_list(
 ) -> str:
     """
     Create a new mailing list.
-    
+
     Args:
         name: List name
         type: List type (public, private)
@@ -335,7 +335,7 @@ async def update_mailing_list(
 ) -> str:
     """
     Update an existing mailing list.
-    
+
     Args:
         list_id: ID of the list to update
         name: New list name
@@ -346,7 +346,7 @@ async def update_mailing_list(
     """
     async def _update_list_logic():
         client = get_client()
-        result = await client.update_list(
+        await client.update_list(
             list_id=list_id,
             name=name,
             type=type,
@@ -364,7 +364,7 @@ async def update_mailing_list(
 async def delete_mailing_list(list_id: int) -> str:
     """
     Delete a mailing list.
-    
+
     Args:
         list_id: ID of the list to delete
     """
@@ -385,7 +385,7 @@ async def get_list_subscribers_tool(
 ) -> str:
     """
     Get subscribers for a specific mailing list.
-    
+
     Args:
         list_id: ID of the mailing list
         page: Page number for pagination
@@ -420,7 +420,7 @@ async def create_campaign(
 ) -> str:
     """
     Create a new email campaign.
-    
+
     Args:
         name: Campaign name
         subject: Email subject line
@@ -462,7 +462,7 @@ async def update_campaign(
 ) -> str:
     """
     Update an existing campaign.
-    
+
     Args:
         campaign_id: ID of the campaign to update
         name: New campaign name
@@ -473,7 +473,7 @@ async def update_campaign(
     """
     async def _update_campaign_logic():
         client = get_client()
-        result = await client.update_campaign(
+        await client.update_campaign(
             campaign_id=campaign_id,
             name=name,
             subject=subject,
@@ -491,13 +491,13 @@ async def update_campaign(
 async def send_campaign(campaign_id: int) -> str:
     """
     Send a campaign immediately.
-    
+
     Args:
         campaign_id: ID of the campaign to send
     """
     async def _send_campaign_logic():
         client = get_client()
-        result = await client.send_campaign(campaign_id)
+        await client.send_campaign(campaign_id)
 
         return f"Successfully sent campaign {campaign_id}"
 
@@ -508,14 +508,14 @@ async def send_campaign(campaign_id: int) -> str:
 async def schedule_campaign(campaign_id: int, send_at: str) -> str:
     """
     Schedule a campaign for future delivery.
-    
+
     Args:
         campaign_id: ID of the campaign to schedule
         send_at: ISO datetime string for when to send (e.g., '2024-12-25T10:00:00Z')
     """
     async def _schedule_campaign_logic():
         client = get_client()
-        result = await client.schedule_campaign(campaign_id, send_at)
+        await client.schedule_campaign(campaign_id, send_at)
 
         return f"Successfully scheduled campaign {campaign_id} for {send_at}"
 
@@ -655,7 +655,7 @@ async def list_mailing_lists() -> str:
         list_items = []
         for lst in lists:
             subscriber_count = lst.get('subscriber_count', 0)
-            status = lst.get('status', 'active')
+            # status = lst.get('status', 'active')  # unused
             tags = lst.get('tags', [])
             tags_str = ", ".join(tags) if tags else "None"
 
@@ -766,7 +766,7 @@ async def create_template(
 ) -> str:
     """
     Create a new email template.
-    
+
     Args:
         name: Template name
         body: Template HTML body content
@@ -798,7 +798,7 @@ async def update_template(
 ) -> str:
     """
     Update an existing email template.
-    
+
     Args:
         template_id: ID of the template to update
         name: New template name
@@ -807,7 +807,7 @@ async def update_template(
     """
     async def _update_template_logic():
         client = get_client()
-        result = await client.update_template(
+        await client.update_template(
             template_id=template_id,
             name=name,
             body=body,
@@ -823,7 +823,7 @@ async def update_template(
 async def delete_template(template_id: int) -> str:
     """
     Delete an email template.
-    
+
     Args:
         template_id: ID of the template to delete
     """
@@ -845,7 +845,7 @@ async def send_transactional_email(
 ) -> str:
     """
     Send a transactional email using a template.
-    
+
     Args:
         template_id: ID of the template to use
         subscriber_email: Recipient email address
@@ -854,7 +854,7 @@ async def send_transactional_email(
     """
     async def _send_transactional_logic():
         client = get_client()
-        result = await client.send_transactional_email(
+        await client.send_transactional_email(
             template_id=template_id,
             subscriber_email=subscriber_email,
             data=data or {},
