@@ -56,3 +56,13 @@ The MCP server exposes 18 endpoints covering all major Listmonk operations:
 - **Campaigns**: Create, manage, and send campaigns
 - **Templates**: Access campaign and transactional templates
 - **Transactional Messages**: Send individual emails with template data
+
+## What is MCP?
+
+The Model Context Protocol (MCP) is an open standard that enables AI assistants to securely connect to external data sources and tools. This server implements MCP to provide AI assistants with direct access to Listmonk's newsletter management capabilities.
+
+## Requirements
+
+- Python 3.11+
+- Running Listmonk instance
+- API credentials from Listmonk admin panel
