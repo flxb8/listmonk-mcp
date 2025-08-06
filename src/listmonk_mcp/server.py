@@ -56,13 +56,13 @@ def create_production_server() -> FastMCP:
     """Create the production MCP server with lifespan management."""
     # Create a new server with the same tools but with lifespan
     production_server = FastMCP("Listmonk MCP Server", lifespan=lifespan)
-    
+
     # Copy all registered tools from the decorator server to production server
     # Access the tool manager to copy tools properly
     if hasattr(mcp, '_tool_manager') and hasattr(mcp._tool_manager, '_tools'):
         for tool_name, tool_func in mcp._tool_manager._tools.items():
             production_server._tool_manager._tools[tool_name] = tool_func
-    
+
     return production_server
 
 
@@ -991,32 +991,32 @@ cli_app = typer.Typer(
 @cli_app.command()
 def run(
     config_file: str = typer.Option(
-        None, 
-        "--config", 
-        "-c", 
+        None,
+        "--config",
+        "-c",
         help="Path to configuration file (.env format)"
     ),
     debug: bool = typer.Option(
-        False, 
-        "--debug", 
-        "-d", 
+        False,
+        "--debug",
+        "-d",
         help="Enable debug logging"
     ),
     version: bool = typer.Option(
-        False, 
-        "--version", 
-        "-v", 
+        False,
+        "--version",
+        "-v",
         help="Show version and exit"
     )
 ) -> None:
     """
     Start the Listmonk MCP server.
-    
+
     The server requires configuration via environment variables:
-    - LISTMONK_MCP_URL: Listmonk server URL (e.g., http://localhost:9000)  
+    - LISTMONK_MCP_URL: Listmonk server URL (e.g., http://localhost:9000)
     - LISTMONK_MCP_USERNAME: Listmonk API username
     - LISTMONK_MCP_PASSWORD: Listmonk API password/token
-    
+
     Optional environment variables:
     - LISTMONK_MCP_TIMEOUT: Request timeout in seconds (default: 30)
     - LISTMONK_MCP_MAX_RETRIES: Maximum retry attempts (default: 3)
@@ -1032,11 +1032,11 @@ def run(
             pkg_version = "0.0.1"  # fallback
         typer.echo(f"listmonk-mcp {pkg_version}")
         raise typer.Exit()
-    
+
     if debug:
         logging.getLogger().setLevel(logging.DEBUG)
         logger.debug("Debug logging enabled")
-    
+
     try:
         logger.info("Starting Listmonk MCP Server...")
         # Create the production MCP server with lifespan management
@@ -1044,10 +1044,10 @@ def run(
         server.run()
     except KeyboardInterrupt:
         logger.info("Server shutdown requested")
-        raise typer.Exit(0)
+        raise typer.Exit(0) from None
     except Exception as e:
         logger.error(f"Server error: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from e
 
 
 def main() -> None:
