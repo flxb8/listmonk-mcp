@@ -3,26 +3,26 @@
 __version__ = "0.1.0"
 
 # Core components
-from .client import ListmonkClient, ListmonkAPIError
+from .client import ListmonkAPIError, ListmonkClient
 from .config import Config, get_config
-from .server import mcp
 
 # Essential models
 from .models import (
-    Subscriber,
     Campaign,
     MailingList,
+    Subscriber,
     Template,
     TransactionalEmailModel,
 )
+from .server import mcp
 
 __all__ = [
     "ListmonkClient",
-    "ListmonkAPIError", 
+    "ListmonkAPIError",
     "Config",
     "Subscriber",
     "MailingList",
-    "Campaign", 
+    "Campaign",
     "Template",
     "TransactionalEmailModel",
     "get_config",

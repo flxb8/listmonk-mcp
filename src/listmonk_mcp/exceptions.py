@@ -1,30 +1,31 @@
 """Exception classes for the Listmonk MCP server."""
 
-from typing import Any, Dict, Optional, Union
+from typing import Any
+
 import httpx
 
 
 class ListmonkMCPError(Exception):
     """Base exception class for all Listmonk MCP errors."""
-    
+
     def __init__(
-        self, 
-        message: str, 
-        details: Optional[Dict[str, Any]] = None,
-        cause: Optional[Exception] = None
+        self,
+        message: str,
+        details: dict[str, Any] | None = None,
+        cause: Exception | None = None
     ):
         super().__init__(message)
         self.message = message
         self.details = details or {}
         self.cause = cause
-    
+
     def __str__(self) -> str:
         """Return a formatted error message."""
         if self.details:
             return f"{self.message}: {self.details}"
         return self.message
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert exception to dictionary for MCP error responses."""
         result = {
             "error_type": self.__class__.__name__,
@@ -39,19 +40,19 @@ class ListmonkMCPError(Exception):
 
 class ValidationError(ListmonkMCPError):
     """Raised when input validation fails."""
-    
+
     def __init__(
-        self, 
-        message: str, 
-        field: Optional[str] = None,
-        value: Optional[Any] = None,
-        details: Optional[Dict[str, Any]] = None
+        self,
+        message: str,
+        field: str | None = None,
+        value: Any | None = None,
+        details: dict[str, Any] | None = None
     ):
         super().__init__(message, details)
         self.field = field
         self.value = value
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Include field and value information in error response."""
         result = super().to_dict()
         if self.field:
@@ -63,17 +64,17 @@ class ValidationError(ListmonkMCPError):
 
 class AuthenticationError(ListmonkMCPError):
     """Raised when authentication with Listmonk fails."""
-    
+
     def __init__(
-        self, 
+        self,
         message: str = "Authentication failed",
-        status_code: Optional[int] = None,
-        details: Optional[Dict[str, Any]] = None
+        status_code: int | None = None,
+        details: dict[str, Any] | None = None
     ):
         super().__init__(message, details)
         self.status_code = status_code
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Include status code in error response."""
         result = super().to_dict()
         if self.status_code:
@@ -83,20 +84,20 @@ class AuthenticationError(ListmonkMCPError):
 
 class APIError(ListmonkMCPError):
     """Raised when Listmonk API returns an error response."""
-    
+
     def __init__(
-        self, 
+        self,
         message: str,
-        status_code: Optional[int] = None,
-        response_data: Optional[Dict[str, Any]] = None,
-        endpoint: Optional[str] = None
+        status_code: int | None = None,
+        response_data: dict[str, Any] | None = None,
+        endpoint: str | None = None
     ):
         super().__init__(message, response_data)
         self.status_code = status_code
         self.response_data = response_data or {}
         self.endpoint = endpoint
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Include API-specific information in error response."""
         result = super().to_dict()
         if self.status_code:
@@ -110,17 +111,17 @@ class APIError(ListmonkMCPError):
 
 class ConfigurationError(ListmonkMCPError):
     """Raised when server configuration is invalid or missing."""
-    
+
     def __init__(
-        self, 
+        self,
         message: str,
-        config_key: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None
+        config_key: str | None = None,
+        details: dict[str, Any] | None = None
     ):
         super().__init__(message, details)
         self.config_key = config_key
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Include configuration key in error response."""
         result = super().to_dict()
         if self.config_key:
@@ -130,19 +131,19 @@ class ConfigurationError(ListmonkMCPError):
 
 class OperationError(ListmonkMCPError):
     """Raised when a specific operation cannot be completed."""
-    
+
     def __init__(
-        self, 
+        self,
         message: str,
-        operation: Optional[str] = None,
-        resource_id: Optional[Union[str, int]] = None,
-        details: Optional[Dict[str, Any]] = None
+        operation: str | None = None,
+        resource_id: str | int | None = None,
+        details: dict[str, Any] | None = None
     ):
         super().__init__(message, details)
         self.operation = operation
         self.resource_id = resource_id
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Include operation details in error response."""
         result = super().to_dict()
         if self.operation:
@@ -154,18 +155,18 @@ class OperationError(ListmonkMCPError):
 
 class ResourceNotFoundError(OperationError):
     """Raised when a requested resource is not found."""
-    
+
     def __init__(
-        self, 
+        self,
         resource_type: str,
-        resource_id: Union[str, int],
-        details: Optional[Dict[str, Any]] = None
+        resource_id: str | int,
+        details: dict[str, Any] | None = None
     ):
         message = f"{resource_type} with ID '{resource_id}' not found"
         super().__init__(message, "get", resource_id, details)
         self.resource_type = resource_type
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Include resource type in error response."""
         result = super().to_dict()
         result["resource_type"] = self.resource_type
@@ -174,19 +175,19 @@ class ResourceNotFoundError(OperationError):
 
 class DuplicateResourceError(OperationError):
     """Raised when attempting to create a resource that already exists."""
-    
+
     def __init__(
-        self, 
+        self,
         resource_type: str,
         identifier: str,
-        details: Optional[Dict[str, Any]] = None
+        details: dict[str, Any] | None = None
     ):
         message = f"{resource_type} with identifier '{identifier}' already exists"
         super().__init__(message, "create", identifier, details)
         self.resource_type = resource_type
         self.identifier = identifier
-    
-    def to_dict(self) -> Dict[str, Any]:
+
+    def to_dict(self) -> dict[str, Any]:
         """Include resource type and identifier in error response."""
         result = super().to_dict()
         result["resource_type"] = self.resource_type
@@ -199,11 +200,11 @@ class DuplicateResourceError(OperationError):
 def map_http_status_to_exception(
     status_code: int,
     message: str,
-    response_data: Optional[Dict[str, Any]] = None,
-    endpoint: Optional[str] = None
+    response_data: dict[str, Any] | None = None,
+    endpoint: str | None = None
 ) -> ListmonkMCPError:
     """Map HTTP status codes to appropriate exception types."""
-    
+
     if status_code == 401:
         return AuthenticationError(
             message=message or "Unauthorized access",
@@ -228,7 +229,7 @@ def map_http_status_to_exception(
                 resource_type = "Campaign"
             elif "/templates/" in endpoint:
                 resource_type = "Template"
-        
+
         return ResourceNotFoundError(
             resource_type=resource_type,
             resource_id="unknown",
@@ -266,9 +267,9 @@ def map_http_status_to_exception(
         )
 
 
-def handle_httpx_error(error: httpx.RequestError, endpoint: Optional[str] = None) -> ListmonkMCPError:
+def handle_httpx_error(error: httpx.RequestError, endpoint: str | None = None) -> ListmonkMCPError:
     """Convert httpx errors to appropriate MCP exceptions."""
-    
+
     if isinstance(error, httpx.ConnectError):
         return ConfigurationError(
             message="Unable to connect to Listmonk server",
@@ -297,7 +298,7 @@ def handle_httpx_error(error: httpx.RequestError, endpoint: Optional[str] = None
 
 def convert_listmonk_api_error(error: Exception) -> ListmonkMCPError:
     """Convert existing ListmonkAPIError to new exception hierarchy."""
-    
+
     # Handle the existing ListmonkAPIError from client.py
     if hasattr(error, 'status_code') and hasattr(error, 'response'):
         return map_http_status_to_exception(
@@ -305,7 +306,7 @@ def convert_listmonk_api_error(error: Exception) -> ListmonkMCPError:
             message=str(error),
             response_data=error.response if hasattr(error, 'response') else None
         )
-    
+
     # Handle general exceptions
     return APIError(
         message=str(error),
@@ -315,7 +316,7 @@ def convert_listmonk_api_error(error: Exception) -> ListmonkMCPError:
 
 # MCP Error Response Formatting
 
-def format_mcp_error(error: ListmonkMCPError) -> Dict[str, Any]:
+def format_mcp_error(error: ListmonkMCPError) -> dict[str, Any]:
     """Format an exception for MCP error response."""
     return {
         "error": error.to_dict(),
@@ -323,7 +324,7 @@ def format_mcp_error(error: ListmonkMCPError) -> Dict[str, Any]:
     }
 
 
-def safe_execute(func, *args, **kwargs) -> Dict[str, Any]:
+def safe_execute(func, *args, **kwargs) -> dict[str, Any]:
     """
     Safely execute a function and return formatted response.
     
