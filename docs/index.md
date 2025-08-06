@@ -66,3 +66,7 @@ The Model Context Protocol (MCP) is an open standard that enables AI assistants 
 - Python 3.11+
 - Running Listmonk instance
 - API credentials from Listmonk admin panel
+
+---
+
+📚 **Documentation built with MkDocs Material**
