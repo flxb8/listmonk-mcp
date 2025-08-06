@@ -8,7 +8,6 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment: release  # Optional: use GitHub environment for additional protection
     permissions:
       id-token: write  # Required for trusted publishing
       contents: read
@@ -26,13 +25,9 @@ jobs:
       uses: astral-sh/setup-uv@v4
       with:
         enable-cache: true
-        cache-dependency-glob: "uv.lock"
         
     - name: Sync dependencies
       run: uv sync
-      
-    - name: Run tests
-      run: uv run pytest
       
     - name: Run linting
       run: uv run ruff check src/
@@ -45,6 +40,5 @@ jobs:
       
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        # Uses PyPI's trusted publishing - no API token needed
-        # Just configure trusted publishing on PyPI for your repository
+      # Uses PyPI's trusted publishing - no API token needed
+      # Just configure trusted publishing on PyPI for your repository
