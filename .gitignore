@@ -32,8 +32,6 @@ ENV/
 .venv/
 .env/
 
-# UV lock file
-uv.lock
 
 # Testing
 .pytest_cache/
@@ -64,3 +62,6 @@ result-*
 
 # Logs
 *.log
+
+# LLM
+.claude
