@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app):
+async def lifespan(app: Any) -> Any:
     """Server lifespan context manager."""
     global _client, _config
 
@@ -84,14 +84,14 @@ def get_config() -> Config:
 @mcp.tool()
 async def check_listmonk_health() -> str:
     """Check if Listmonk server is healthy and accessible."""
-    async def _check_health_logic():
+    async def _check_health_logic() -> str:
         client = get_client()
         health_data = await client.health_check()
         config = get_config()
 
         return f"Listmonk server is healthy at {config.url}. Health data: {health_data}"
 
-    return await safe_execute_async(_check_health_logic)
+    return await safe_execute_async(_check_health_logic)  # type: ignore[no-any-return]
 
 
 # Subscriber Management Tools
@@ -115,7 +115,7 @@ async def add_subscriber(
         attributes: Custom subscriber attributes
         preconfirm: Whether to preconfirm subscriptions
     """
-    async def _add_subscriber_logic():
+    async def _add_subscriber_logic() -> str:
         client = get_client()
         result = await client.create_subscriber(
             email=email,
@@ -130,7 +130,7 @@ async def add_subscriber(
         subscriber_id = subscriber_data.get("id", "unknown")
         return f"Successfully added subscriber: {email} (ID: {subscriber_id})"
 
-    return await safe_execute_async(_add_subscriber_logic)
+    return await safe_execute_async(_add_subscriber_logic)  # type: ignore[no-any-return]
 
 
 @mcp.tool()
@@ -153,7 +153,7 @@ async def update_subscriber(
         lists: New list of mailing list IDs
         attributes: New custom attributes
     """
-    async def _update_subscriber_logic():
+    async def _update_subscriber_logic() -> str:
         client = get_client()
         await client.update_subscriber(
             subscriber_id=subscriber_id,
@@ -166,7 +166,7 @@ async def update_subscriber(
 
         return f"Successfully updated subscriber {subscriber_id}"
 
-    return await safe_execute_async(_update_subscriber_logic)
+    return await safe_execute_async(_update_subscriber_logic)  # type: ignore[no-any-return]
 
 
 @mcp.tool()
@@ -177,13 +177,13 @@ async def remove_subscriber(subscriber_id: int) -> str:
     Args:
         subscriber_id: ID of the subscriber to remove
     """
-    async def _remove_subscriber_logic():
+    async def _remove_subscriber_logic() -> str:
         client = get_client()
         await client.delete_subscriber(subscriber_id)
 
         return f"Successfully removed subscriber {subscriber_id}"
 
-    return await safe_execute_async(_remove_subscriber_logic)
+    return await safe_execute_async(_remove_subscriber_logic)  # type: ignore[no-any-return]
 
 
 @mcp.tool()
@@ -195,13 +195,13 @@ async def change_subscriber_status(subscriber_id: int, status: str) -> str:
         subscriber_id: ID of the subscriber
         status: New status (enabled, disabled, blocklisted)
     """
-    async def _change_status_logic():
+    async def _change_status_logic() -> str:
         client = get_client()
         await client.set_subscriber_status(subscriber_id, status)
 
         return f"Successfully changed subscriber {subscriber_id} status to {status}"
 
-    return await safe_execute_async(_change_status_logic)
+    return await safe_execute_async(_change_status_logic)  # type: ignore[no-any-return]
 
 
 # Subscriber Resources
@@ -322,7 +322,7 @@ async def create_mailing_list(
         tags: List tags
         description: List description
     """
-    async def _create_list_logic():
+    async def _create_list_logic() -> str:
         client = get_client()
         result = await client.create_list(
             name=name,
@@ -336,7 +336,7 @@ async def create_mailing_list(
         list_id = list_data.get("id", "unknown")
         return f"Successfully created mailing list '{name}' (ID: {list_id})"
 
-    return await safe_execute_async(_create_list_logic)
+    return await safe_execute_async(_create_list_logic)  # type: ignore[no-any-return]
 
 
 @mcp.tool()
@@ -359,7 +359,7 @@ async def update_mailing_list(
         tags: New list tags
         description: New list description
     """
-    async def _update_list_logic():
+    async def _update_list_logic() -> str:
         client = get_client()
         await client.update_list(
             list_id=list_id,
@@ -372,7 +372,7 @@ async def update_mailing_list(
 
         return f"Successfully updated mailing list {list_id}"
 
-    return await safe_execute_async(_update_list_logic)
+    return await safe_execute_async(_update_list_logic)  # type: ignore[no-any-return]
 
 
 @mcp.tool()
@@ -383,13 +383,13 @@ async def delete_mailing_list(list_id: int) -> str:
     Args:
         list_id: ID of the list to delete
     """
-    async def _delete_list_logic():
+    async def _delete_list_logic() -> str:
         client = get_client()
         await client.delete_list(list_id)
 
         return f"Successfully deleted mailing list {list_id}"
 
-    return await safe_execute_async(_delete_list_logic)
+    return await safe_execute_async(_delete_list_logic)  # type: ignore[no-any-return]
 
 
 @mcp.tool()
@@ -406,7 +406,7 @@ async def get_list_subscribers_tool(
         page: Page number for pagination
         per_page: Number of subscribers per page
     """
-    async def _get_list_subscribers_logic():
+    async def _get_list_subscribers_logic() -> str:
         client = get_client()
         result = await client.get_list_subscribers(
             list_id=list_id,
@@ -418,7 +418,7 @@ async def get_list_subscribers_tool(
         total = result.get("total", 0)
         return f"Successfully retrieved {len(subscribers)} subscribers for list {list_id} (Total: {total}, Page: {page})"
 
-    return await safe_execute_async(_get_list_subscribers_logic)
+    return await safe_execute_async(_get_list_subscribers_logic)  # type: ignore[no-any-return]
 
 
 # Campaign Management Tools
@@ -446,7 +446,7 @@ async def create_campaign(
         template_id: Template ID to use (optional)
         tags: Campaign tags
     """
-    async def _create_campaign_logic():
+    async def _create_campaign_logic() -> str:
         client = get_client()
         result = await client.create_campaign(
             name=name,
@@ -463,7 +463,7 @@ async def create_campaign(
         campaign_id = campaign_data.get("id", "unknown")
         return f"Successfully created campaign '{name}' (ID: {campaign_id})"
 
-    return await safe_execute_async(_create_campaign_logic)
+    return await safe_execute_async(_create_campaign_logic)  # type: ignore[no-any-return]
 
 
 @mcp.tool()
@@ -486,7 +486,7 @@ async def update_campaign(
         body: New campaign content
         tags: New campaign tags
     """
-    async def _update_campaign_logic():
+    async def _update_campaign_logic() -> str:
         client = get_client()
         await client.update_campaign(
             campaign_id=campaign_id,
@@ -499,7 +499,7 @@ async def update_campaign(
 
         return f"Successfully updated campaign {campaign_id}"
 
-    return await safe_execute_async(_update_campaign_logic)
+    return await safe_execute_async(_update_campaign_logic)  # type: ignore[no-any-return]
 
 
 @mcp.tool()
@@ -510,13 +510,13 @@ async def send_campaign(campaign_id: int) -> str:
     Args:
         campaign_id: ID of the campaign to send
     """
-    async def _send_campaign_logic():
+    async def _send_campaign_logic() -> str:
         client = get_client()
         await client.send_campaign(campaign_id)
 
         return f"Successfully sent campaign {campaign_id}"
 
-    return await safe_execute_async(_send_campaign_logic)
+    return await safe_execute_async(_send_campaign_logic)  # type: ignore[no-any-return]
 
 
 @mcp.tool()
@@ -528,13 +528,13 @@ async def schedule_campaign(campaign_id: int, send_at: str) -> str:
         campaign_id: ID of the campaign to schedule
         send_at: ISO datetime string for when to send (e.g., '2024-12-25T10:00:00Z')
     """
-    async def _schedule_campaign_logic():
+    async def _schedule_campaign_logic() -> str:
         client = get_client()
         await client.schedule_campaign(campaign_id, send_at)
 
         return f"Successfully scheduled campaign {campaign_id} for {send_at}"
 
-    return await safe_execute_async(_schedule_campaign_logic)
+    return await safe_execute_async(_schedule_campaign_logic)  # type: ignore[no-any-return]
 
 
 # Campaign Resources
@@ -788,7 +788,7 @@ async def create_template(
         type: Template type (campaign, tx)
         is_default: Whether this is the default template
     """
-    async def _create_template_logic():
+    async def _create_template_logic() -> str:
         client = get_client()
         result = await client.create_template(
             name=name,
@@ -801,7 +801,7 @@ async def create_template(
         template_id = template_data.get("id", "unknown")
         return f"Successfully created template '{name}' (ID: {template_id})"
 
-    return await safe_execute_async(_create_template_logic)
+    return await safe_execute_async(_create_template_logic)  # type: ignore[no-any-return]
 
 
 @mcp.tool()
@@ -820,7 +820,7 @@ async def update_template(
         body: New template HTML body content
         is_default: Whether this is the default template
     """
-    async def _update_template_logic():
+    async def _update_template_logic() -> str:
         client = get_client()
         await client.update_template(
             template_id=template_id,
@@ -831,7 +831,7 @@ async def update_template(
 
         return f"Successfully updated template {template_id}"
 
-    return await safe_execute_async(_update_template_logic)
+    return await safe_execute_async(_update_template_logic)  # type: ignore[no-any-return]
 
 
 @mcp.tool()
@@ -842,13 +842,13 @@ async def delete_template(template_id: int) -> str:
     Args:
         template_id: ID of the template to delete
     """
-    async def _delete_template_logic():
+    async def _delete_template_logic() -> str:
         client = get_client()
         await client.delete_template(template_id)
 
         return f"Successfully deleted template {template_id}"
 
-    return await safe_execute_async(_delete_template_logic)
+    return await safe_execute_async(_delete_template_logic)  # type: ignore[no-any-return]
 
 
 @mcp.tool()
@@ -867,7 +867,7 @@ async def send_transactional_email(
         data: Template variables/data
         content_type: Content type (html, plain)
     """
-    async def _send_transactional_logic():
+    async def _send_transactional_logic() -> str:
         client = get_client()
         await client.send_transactional_email(
             template_id=template_id,
@@ -878,7 +878,7 @@ async def send_transactional_email(
 
         return f"Successfully sent transactional email to {subscriber_email}"
 
-    return await safe_execute_async(_send_transactional_logic)
+    return await safe_execute_async(_send_transactional_logic)  # type: ignore[no-any-return]
 
 
 # Template Resources
@@ -1008,7 +1008,7 @@ def run(
         "-v", 
         help="Show version and exit"
     )
-):
+) -> None:
     """
     Start the Listmonk MCP server.
     
@@ -1050,7 +1050,7 @@ def run(
         raise typer.Exit(1)
 
 
-def main():
+def main() -> None:
     """Main entry point for the CLI script."""
     cli_app()
 

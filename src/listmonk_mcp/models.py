@@ -246,7 +246,7 @@ class CreateCampaignModel(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=200, description="Campaign name")
     subject: str = Field(..., min_length=1, max_length=500, description="Email subject line")
-    lists: list[int] = Field(..., min_items=1, description="Target mailing list IDs")
+    lists: list[int] = Field(..., description="Target mailing list IDs", min_items=1)  # type: ignore[call-overload]
     type: CampaignTypeEnum = Field(default=CampaignTypeEnum.regular, description="Campaign type")
     content_type: ContentTypeEnum = Field(default=ContentTypeEnum.richtext, description="Content format")
     from_email: EmailStr | None = Field(None, description="From email address")
@@ -284,7 +284,7 @@ class UpdateCampaignModel(BaseModel):
 
     name: str | None = Field(None, min_length=1, max_length=200, description="New campaign name")
     subject: str | None = Field(None, min_length=1, max_length=500, description="New email subject")
-    lists: list[int] | None = Field(None, min_items=1, description="New target mailing list IDs")
+    lists: list[int] | None = Field(None, description="New target mailing list IDs", min_items=1)  # type: ignore[call-overload]
     from_email: EmailStr | None = Field(None, description="New from email address")
     body: str | None = Field(None, description="New campaign body content")
     altbody: str | None = Field(None, description="New plain text alternative body")

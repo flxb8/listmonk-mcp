@@ -30,7 +30,7 @@ class ListmonkMCPError(Exception):
 
     def to_dict(self) -> dict[str, Any]:
         """Convert exception to dictionary for MCP error responses."""
-        result = {
+        result: dict[str, Any] = {
             "error_type": self.__class__.__name__,
             "message": self.message,
         }
@@ -295,7 +295,7 @@ def handle_httpx_error(error: httpx.RequestError, endpoint: str | None = None) -
         return APIError(
             message=f"HTTP request failed: {str(error)}",
             endpoint=endpoint,
-            details={"original_error": str(error)}
+            response_data={"original_error": str(error)}
         )
 
 
@@ -313,7 +313,7 @@ def convert_listmonk_api_error(error: Exception) -> ListmonkMCPError:
     # Handle general exceptions
     return APIError(
         message=str(error),
-        details={"original_error": str(error)}
+        response_data={"original_error": str(error)}
     )
 
 
@@ -327,7 +327,7 @@ def format_mcp_error(error: ListmonkMCPError) -> dict[str, Any]:
     }
 
 
-def safe_execute(func, *args, **kwargs) -> dict[str, Any]:
+def safe_execute(func: Any, *args: Any, **kwargs: Any) -> dict[str, Any]:
     """
     Safely execute a function and return formatted response.
 
@@ -346,7 +346,7 @@ def safe_execute(func, *args, **kwargs) -> dict[str, Any]:
         return format_mcp_error(mcp_error)
 
 
-async def safe_execute_async(func, *args, **kwargs):
+async def safe_execute_async(func: Any, *args: Any, **kwargs: Any) -> Any:
     """
     Safely execute an async function and handle ListmonkAPIError exceptions.
     Returns formatted error response for MCP tools.

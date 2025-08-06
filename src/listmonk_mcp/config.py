@@ -73,10 +73,16 @@ def load_config(env_file: str | None = None) -> Config:
     """Load configuration from environment variables and optional .env file."""
     global _config
 
+    # Pydantic-settings automatically loads from .env file
+    # If a custom env_file is provided, we need to update the model config
     if env_file and Path(env_file).exists():
-        _config = Config(_env_file=env_file)
+        # Create a temporary config class with custom env_file
+        class TempConfig(Config):
+            model_config = Config.model_config.copy()
+            model_config['env_file'] = env_file
+        _config = TempConfig()  # type: ignore[call-arg]
     else:
-        _config = Config()
+        _config = Config()  # type: ignore[call-arg]
 
     return _config
 

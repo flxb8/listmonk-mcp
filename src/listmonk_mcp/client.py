@@ -27,12 +27,12 @@ class ListmonkClient:
         self.base_url = config.url.rstrip('/')
         self._client: AsyncClient | None = None
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "ListmonkClient":
         """Async context manager entry."""
         await self.connect()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: object) -> None:
         """Async context manager exit."""
         await self.close()
 
@@ -108,7 +108,7 @@ class ListmonkClient:
             response_data = {"text": response.text}
 
         if response.is_success:
-            return response_data
+            return response_data  # type: ignore[no-any-return]
 
         # Handle API errors
         error_message = response_data.get("message", f"HTTP {response.status_code}")
@@ -188,7 +188,7 @@ class ListmonkClient:
         attribs: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Update an existing subscriber."""
-        data = {}
+        data: dict[str, Any] = {}
         if email is not None:
             data["email"] = email
         if name is not None:
@@ -250,7 +250,7 @@ class ListmonkClient:
         description: str | None = None
     ) -> dict[str, Any]:
         """Update an existing mailing list."""
-        data = {}
+        data: dict[str, Any] = {}
         if name is not None:
             data["name"] = name
         if type is not None:
@@ -281,7 +281,7 @@ class ListmonkClient:
         status: str | None = None
     ) -> dict[str, Any]:
         """Get campaigns with pagination and filtering."""
-        params = {"page": page, "per_page": per_page}
+        params: dict[str, Any] = {"page": page, "per_page": per_page}
         if status:
             params["status"] = status
 
@@ -303,7 +303,7 @@ class ListmonkClient:
         tags: list[str] | None = None
     ) -> dict[str, Any]:
         """Create a new campaign."""
-        data = {
+        data: dict[str, Any] = {
             "name": name,
             "subject": subject,
             "lists": lists,
@@ -329,7 +329,7 @@ class ListmonkClient:
         tags: list[str] | None = None
     ) -> dict[str, Any]:
         """Update an existing campaign."""
-        data = {}
+        data: dict[str, Any] = {}
         if name is not None:
             data["name"] = name
         if subject is not None:
@@ -389,7 +389,7 @@ class ListmonkClient:
         is_default: bool | None = None
     ) -> dict[str, Any]:
         """Update an existing template."""
-        data = {}
+        data: dict[str, Any] = {}
         if name is not None:
             data["name"] = name
         if body is not None:
