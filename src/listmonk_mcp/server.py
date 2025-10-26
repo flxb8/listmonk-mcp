@@ -82,13 +82,14 @@ def get_config() -> Config:
 
 # Health Check Tool
 @mcp.tool()
-async def check_listmonk_health(**_kwargs: Any) -> str:
+async def check_listmonk_health(params: dict[str, Any] | None = None) -> str:
     """Check if Listmonk server is healthy and accessible."""
     async def _check_health_logic() -> str:
         client = get_client()
         health_data = await client.health_check()
         config = get_config()
         return f"Listmonk server is healthy at {config.url}. Health data: {health_data}"
+
     return await safe_execute_async(_check_health_logic)  # type: ignore[no-any-return]
 
 # Subscriber Management Tools
