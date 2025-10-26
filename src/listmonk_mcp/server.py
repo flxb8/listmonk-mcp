@@ -11,6 +11,8 @@ from .client import ListmonkAPIError, ListmonkClient, create_client
 from .config import Config, load_config, validate_config
 from .exceptions import safe_execute_async
 
+from urllib.parse import urlparse
+
 # Global state
 _client: ListmonkClient | None = None
 _config: Config | None = None
@@ -976,6 +978,102 @@ async def get_template_preview(template_id: str) -> str:
 
     except ListmonkAPIError as e:
         return f"Error retrieving template content {template_id}: {str(e)}"
+
+
+@mcp.tool()
+async def read_listmonk_resource(uri: str) -> str:
+    """
+    Read any Listmonk resource by URI (wrapper for environments that don't expose resources/read).
+    Supported URIs:
+      listmonk://lists
+      listmonk://list/{id}
+      listmonk://list/{id}/subscribers
+      listmonk://subscribers
+      listmonk://subscriber/{id}
+      listmonk://subscriber/email/{email}
+      listmonk://campaigns
+      listmonk://campaign/{id}
+      listmonk://campaign/{id}/preview
+      listmonk://templates
+      listmonk://template/{id}
+      listmonk://template/{id}/preview
+    """
+    try:
+        client = get_client()
+        parsed = urlparse(uri)
+        if parsed.scheme != "listmonk":
+            return f"Unsupported URI scheme: {parsed.scheme}"
+
+        path = parsed.path.lstrip("/").split("/")
+
+        # === Templates list ===
+        if path == ["templates"]:
+            result = await client.get_templates()
+            data = result.get("data", {})
+            templates = data.get("results", []) if isinstance(data, dict) else data
+
+            lines = []
+            for t in templates:
+                ttype = t.get("type", "campaign")
+                is_def = t.get("is_default", False)
+                default_marker = " (DEFAULT)" if is_def else ""
+                lines.append(
+                    f"- **{t.get('name')}** (ID: {t.get('id')}) - Type: {ttype}{default_marker}"
+                )
+
+            body = "\n".join(lines)
+            return (
+                "# Email Templates\n\n"
+                f"**Total Templates:** {len(templates)}\n\n"
+                f"{body}\n"
+            )
+
+        # === Single template ===
+        if len(path) == 2 and path[0] == "template":
+            tpl_id = int(path[1])
+            result = await client.get_template(tpl_id)
+            tpl = result.get("data", {})
+            body = tpl.get("body", "")
+            preview = body[:500] + "..." if len(body) > 500 else body
+
+            return (
+                "# Template Details\n\n"
+                f"**ID:** {tpl.get('id')}\n"
+                f"**Name:** {tpl.get('name')}\n"
+                f"**Type:** {tpl.get('type', 'campaign')}\n"
+                f"**Default:** {'Yes' if tpl.get('is_default') else 'No'}\n\n"
+                "## Timing\n"
+                f"**Created:** {tpl.get('created_at')}\n"
+                f"**Updated:** {tpl.get('updated_at')}\n\n"
+                "## Template Body Preview\n"
+                "```html\n"
+                f"{preview}\n"
+                "```\n"
+            )
+
+        # === Template full preview ===
+        if len(path) == 3 and path[0] == "template" and path[2] == "preview":
+            tpl_id = int(path[1])
+            result = await client.get_template(tpl_id)
+            tpl = result.get("data", {})
+            body = tpl.get("body", "No content available")
+
+            return (
+                "# Template Full Content\n\n"
+                f"**Template ID:** {tpl_id}\n"
+                f"**Template Name:** {tpl.get('name')}\n\n"
+                "## Full HTML Body\n"
+                "```html\n"
+                f"{body}\n"
+                "```\n"
+            )
+
+        return f"Unsupported resource path: {'/'.join(path)}"
+
+    except ListmonkAPIError as e:
+        return f"Error reading resource {uri}: {str(e)}"
+    except Exception as e:
+        return f"Error reading resource {uri}: {e!r}"
 
 
 # CLI application
