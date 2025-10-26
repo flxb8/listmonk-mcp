@@ -81,8 +81,15 @@ def get_config() -> Config:
 
 
 # Health Check Tool
-@mcp.tool()
-async def check_listmonk_health() -> str:
+@mcp.tool(
+    input_schema={
+        "oneOf": [
+            {"type": "null"},
+            {"type": "object", "properties": {}, "additionalProperties": False}
+        ]
+    }
+)
+async def check_listmonk_health(**_kwargs: Any) -> str:
     """Check if Listmonk server is healthy and accessible."""
     async def _check_health_logic() -> str:
         client = get_client()
